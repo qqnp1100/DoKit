@@ -1,58 +1,51 @@
 package com.didichuxing.doraemonkit.kit.connect
 
-import android.graphics.Bitmap
+import com.didichuxing.doraemonkit.kit.connect.data.BytePackage
 import com.didichuxing.doraemonkit.kit.connect.data.PackageType
+import com.didichuxing.doraemonkit.kit.connect.data.TextPackage
 import com.didichuxing.doraemonkit.kit.connect.parser.ByteParser
-import com.didichuxing.doraemonkit.kit.connect.parser.JsonParser
-import com.didichuxing.doraemonkit.util.RandomUtils
 import okio.ByteString
+import org.junit.Assert.*
 import org.junit.Test
-import java.io.ByteArrayOutputStream
-
-
-/**
- * didi Create on 2022/4/21 .
- *
- * Copyright (c) 2022/4/21 by didiglobal.com.
- *
- * @author <a href="realonlyone@126.com">zhangjun</a>
- * @version 1.0
- * @Date 2022/4/21 7:08 下午
- * @Description 用一句话说明文件功能
- */
 
 class ByteParserTest {
+    private fun textPackage() = TextPackage(
+        pid = "packet-fixture",
+        type = PackageType.AUTOTEST,
+        data = """{"caseId":"fixture-case","image":"截图.png","type":"jpeg"}""",
+        connectSerial = "fixture-connection",
+        contentType = "image"
+    )
 
+    @Test fun roundTripPreservesHeaderAndBinaryPayload() {
+        val payload = ByteArray(256) { it.toByte() }
+        val header = textPackage()
+        val encoded = ByteParser.toByteString(header, payload)
+        val buffer = encoded.asByteBuffer()
+        val magic = ByteArray(5).also(buffer::get)
+        val headerLength = buffer.int
+        val payloadLength = buffer.long
+        assertArrayEquals("DoKit".toByteArray(Charsets.US_ASCII), magic)
+        assertTrue(headerLength > 0)
+        assertEquals(payload.size.toLong(), payloadLength)
+        assertEquals(17 + headerLength + payload.size, encoded.size)
 
-    @Test
-    fun test() {
-
-        val bytes = "byteArray".toByteArray()
-
-        val dataMap = mutableMapOf<String, String>()
-        dataMap["caseId"] = RandomUtils.random32HexString()
-        dataMap["image"] = "fileName"
-        dataMap["type"] = "jpeg"
-
-        val data = JsonParser.toJson(dataMap)
-        val textPackage = JsonParser.toTextPackage(PackageType.AUTOTEST, data, "image")
-        val byteString = ByteParser.toByteString(textPackage, bytes)
-
-        ByteParser.parse(byteString)
-
+        val decoded = ByteParser.parse(encoded)
+        assertEquals(headerLength, decoded.headLength)
+        assertEquals(payloadLength, decoded.dataLength)
+        assertEquals(header, decoded.textPackage)
+        assertArrayEquals(payload, decoded.data)
     }
 
-    fun getByteString(): ByteString {
-        val bytes = "byteArray".toByteArray()
-
-        val dataMap = mutableMapOf<String, String>()
-        dataMap["caseId"] = RandomUtils.random32HexString()
-        dataMap["image"] = "fileName"
-        dataMap["type"] = "jpeg"
-
-        val data = JsonParser.toJson(dataMap)
-        val textPackage = JsonParser.toTextPackage(PackageType.AUTOTEST, data, "image")
-        val byteString = ByteParser.toByteString(textPackage, bytes)
-        return byteString
+    @Test fun emptyBinaryPayloadRoundTrips() {
+        val header = textPackage()
+        val encoded = ByteParser.toByteString(BytePackage(textPackage = header, data = byteArrayOf()))
+        val decoded = ByteParser.parse(encoded)
+        assertEquals(header, decoded.textPackage)
+        assertEquals(0L, decoded.dataLength)
+        assertArrayEquals(byteArrayOf(), decoded.data)
+        assertEquals(17 + decoded.headLength, encoded.size)
     }
+
+    fun getByteString(): ByteString = ByteParser.toByteString(textPackage(), "binary fixture".toByteArray())
 }

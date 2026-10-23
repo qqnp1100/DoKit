@@ -3,6 +3,7 @@ package com.didichuxing.doraemondemo
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.content.pm.PackageManager
 import android.view.View
 import androidx.multidex.MultiDex
 import com.baidu.mapapi.CoordType
@@ -38,9 +39,15 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        //百度地图初始化
-        SDKInitializer.initialize(this)
-        SDKInitializer.setCoordType(CoordType.BD09LL)
+        // Map credentials are optional for running the rest of the Demo.
+        val baiduKey = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
+            .metaData?.getString("com.baidu.lbsapi.API_KEY")
+        if (!baiduKey.isNullOrBlank()) {
+            SDKInitializer.initialize(this)
+            SDKInitializer.setCoordType(CoordType.BD09LL)
+        } else {
+            android.util.Log.w(TAG, "Baidu maps unavailable: configure BAIDU_MAP_API_KEY to enable map demos")
+        }
         //测试环境:a49842eeebeb1989b3f9565eb12c276b
         //线上环境:749a0600b5e48dd77cf8ee680be7b1b7
         //DoraemonKit.disableUpload()
@@ -65,9 +72,7 @@ class App : Application() {
 
 
         DoKit.Builder(this)
-            .productId("749a0600b5e48dd77cf8ee680be7b1b7")
-                //测试环境pid
-//            .productId("277016abcc33bff1e6a4f1afdf14b8e1")
+            .productId("b80092ca-1c43-4922-af59-7a1afb07401e")
             .disableUpload()
             .customKits(mapKits)
             .fileManagerHttpPort(9001)

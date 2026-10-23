@@ -7,7 +7,7 @@ import android.view.Window;
 
 import com.didichuxing.doraemonkit.kit.core.DoKitFrameLayout;
 import com.didichuxing.doraemonkit.kit.test.event.WindowNode;
-import com.didichuxing.doraemonkit.test.R;
+import com.didichuxing.doraemonkit.R;
 import com.didichuxing.doraemonkit.util.RandomUtils;
 import com.didichuxing.doraemonkit.util.ReflectUtils;
 

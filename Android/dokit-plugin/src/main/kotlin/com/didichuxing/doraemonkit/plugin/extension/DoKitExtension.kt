@@ -1,6 +1,7 @@
 package com.didichuxing.doraemonkit.plugin.extension
 
 import org.gradle.api.Action
+import groovy.lang.Closure
 
 /**
  * Created by jint on 07/10/2018.
@@ -36,6 +37,8 @@ open class DoKitExtension(
      *
      * @param action
      */
+    fun gps(closure: Closure<*>) { configureDsl(closure, gps) }
+
     fun gps(action: Action<GpsExtension>) {
         action.execute(gps)
     }
@@ -45,6 +48,8 @@ open class DoKitExtension(
      *
      * @param action
      */
+    fun network(closure: Closure<*>) { configureDsl(closure, network) }
+
     fun network(action: Action<NetworkExtension>) {
         action.execute(network)
     }
@@ -54,10 +59,14 @@ open class DoKitExtension(
      *
      * @param action
      */
+    fun bigImage(closure: Closure<*>) { configureDsl(closure, bigImage) }
+
     fun bigImage(action: Action<BigImageExtension>) {
         action.execute(bigImage)
     }
     
+    fun webView(closure: Closure<*>) { configureDsl(closure, webView) }
+
     fun webView(action: Action<WebViewExtension>) {
         action.execute(webView)
     }
@@ -67,6 +76,8 @@ open class DoKitExtension(
      *
      * @param action
      */
+    fun slowMethod(closure: Closure<*>) { configureDsl(closure, slowMethod) }
+
     fun slowMethod(action: Action<SlowMethodExtension>) {
         action.execute(slowMethod)
     }

@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "scope": "Pinned arm64 libc++ providers for the Demo; selecting a provider does not prove complete Native or device compatibility",
+  "providers": [
+    {
+      "coordinate": "org.apache.weex:sdk:0.28.0",
+      "abi": "arm64-v8a",
+      "aarEntry": "jni/arm64-v8a/libc++_shared.so",
+      "sha256": "59aa4cc063b05735c785a70c3ce3598a4e600f9521e8c479151b8d673e7156bf"
+    },
+    {
+      "coordinate": "com.tencent.matrix:matrix-hooks:2.0.2",
+      "abi": "arm64-v8a",
+      "aarEntry": "jni/arm64-v8a/libc++_shared.so",
+      "sha256": "e8373ee43274541efd2d34fe0588d55bf953612e1417ad47cfd2c4bd1aa383d0"
+    }
+  ]
+}

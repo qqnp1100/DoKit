@@ -1,14 +1,14 @@
 package com.didichuxing.doraemonkit.plugin.transform.classtransform
 
-import com.didichuxing.doraemonkit.plugin.DoKitExtUtil
+import com.didichuxing.doraemonkit.plugin.DoKitState
 import com.didichuxing.doraemonkit.plugin.extension.DoKitExtension
 import com.didichuxing.doraemonkit.plugin.formatSuperName
-import com.didichuxing.doraemonkit.plugin.lastPath
 import com.didichuxing.doraemonkit.plugin.println
-import com.didiglobal.booster.kotlinx.asIterable
-import com.didiglobal.booster.transform.TransformContext
-import com.didiglobal.booster.transform.asm.className
-import org.gradle.api.Project
+
+import com.didichuxing.doraemonkit.plugin.asIterable
+import com.didichuxing.doraemonkit.plugin.TransformContext
+import com.didichuxing.doraemonkit.plugin.className
+
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.*
 
@@ -24,9 +24,9 @@ import org.objectweb.asm.tree.*
  * @Description WebView hooks
  */
 
-class WebViewClassTransformer : AbsClassTransformer() {
+class WebViewClassTransformer(state: DoKitState) : AbsClassTransformer(state) {
 
-    override fun transform(project: Project, dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
+    override fun transform(dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
 
         val className = klass.className
         val superName = klass.formatSuperName
@@ -34,20 +34,22 @@ class WebViewClassTransformer : AbsClassTransformer() {
         //网络 OkHttp&didi platform aop
         if (dokit.webViewEnable) {
             //webView 字节码操作
-            if (dokit.webView.network) {
+            if (dokit.webView.network || dokit.webView.dokitWeb || dokit.webView.vConsole) {
                 //普通的webview
                 klass.methods.forEach { method ->
                     method.instructions?.iterator()?.asIterable()
                         ?.filterIsInstance(MethodInsnNode::class.java)?.filter {
                             if ("loadUrl".equals(it.name)) {
-                                "hook loadUrl() all ${className} ^${superName}^${it.owner} :: ${it.name} , ${it.desc} ,${it.opcode}".println()
+                                state.log("hook loadUrl() all ${className} ^${superName}^${it.owner} :: ${it.name} , ${it.desc} ,${it.opcode}")
                             }
                             (it.opcode == Opcodes.INVOKEVIRTUAL || it.opcode == Opcodes.INVOKESPECIAL)
                                 && it.name == "loadUrl"
                                 && (it.desc == "(Ljava/lang/String;)V" || it.desc == "(Ljava/lang/String;Ljava/util/Map;)V")
                                 && isWebViewOwnerNameMatched(it.owner)
+                                && (it.previous as? MethodInsnNode)?.owner != "com/didichuxing/doraemonkit/aop/WebViewHook"
+                                && (it.previous?.previous as? MethodInsnNode)?.owner != "com/didichuxing/doraemonkit/aop/WebViewHook"
                         }?.forEach {
-                            "${context.projectDir.lastPath()}->hook WebView#loadurl method  succeed in :  ${className}_${method.name}_${method.desc} | ${it.owner}".println()
+                            state.log("${context.variantName}->hook WebView#loadurl method  succeed in :  ${className}_${method.name}_${method.desc} | ${it.owner}")
                             if (it.desc == "(Ljava/lang/String;)V") {
                                 method.instructions.insertBefore(it, createWebViewInsnList())
                             } else {
@@ -65,7 +67,7 @@ class WebViewClassTransformer : AbsClassTransformer() {
         return ownerName == "android/webkit/WebView" ||
             ownerName == "com/tencent/smtt/sdk/WebView" ||
             ownerName.contentEquals("WebView") ||
-            ownerName == DoKitExtUtil.WEBVIEW_CLASS_NAME
+            ownerName == state.WEBVIEW_CLASS_NAME
     }
 
 
@@ -106,7 +108,8 @@ class WebViewClassTransformer : AbsClassTransformer() {
      * 参考:https://www.jianshu.com/p/7d623f441bed
      */
     private fun createWebViewInsnList(method: MethodNode): InsnList {
-        val size = method.localVariables.size
+        val size = method.maxLocals
+        method.maxLocals += 2
         return with(InsnList()) {
             add(VarInsnNode(Opcodes.ASTORE, size + 1))
             add(VarInsnNode(Opcodes.ASTORE, size))

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.didichuxing.doraemondemo">
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- 腾讯地图 SDK 要求的权限(开始) -->
     <!-- 访问网络获取地图服务 -->
     <uses-permission android:name="android.permission.INTERNET" /> <!-- 检查网络可用性 -->
@@ -24,6 +23,9 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:replace="android:allowBackup">
+        <meta-data
+            android:name="com.baidu.lbsapi.API_KEY"
+            android:value="${BAIDU_MAP_API_KEY}" />
         <activity android:name=".old.MainDebugActivityOkhttpV3">
 
         </activity>
@@ -39,7 +41,6 @@
         <!--        </activity>-->
 
         <activity android:name=".mc.WebViewActivity" />
-        <activity android:name=".comm.CommFragmentActivity" />
 
 
         <!--                <activity-->
@@ -51,6 +52,37 @@
         <!--                        <category android:name="android.intent.category.LAUNCHER" />-->
         <!--                    </intent-filter>-->
         <!--                </activity>-->
+
+        <activity
+            android:name=".mc.NetMainActivity"
+            android:exported="false" />
+        <activity android:name=".WebViewSystemActivity" />
+        <activity android:name=".WebViewX5Activity" />
+        <activity android:name=".EmptyActivity" />
+        <activity android:name=".module.bigbitmap.BigBitmapActivity" />
+        <activity android:name=".module.leak.LeakActivity" />
+        <activity android:name=".mc.MCActivity" />
+        <activity android:name="com.amap.api.navi.AmapRouteActivity" />
+        <activity
+            android:name=".comm.CommFragmentActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <!-- 高德定位服务 -->
+
+
+        <service android:name="com.amap.api.location.APSService" />
+
+
+        <!-- 百度地图定位服务 -->
+        <service
+            android:name="com.baidu.location.f"
+            android:enabled="true"
+            android:process=":remote" />
+
+        <!-- Dokit targetApi为 29 Android Q时截屏的前台服务 -->
+        <service
+            android:name=".test.ScreenRecordingService"
+            android:enabled="true"
+            android:foregroundServiceType="mediaProjection" />
 
     </application>
 

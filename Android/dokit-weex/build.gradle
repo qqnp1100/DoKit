@@ -1,20 +1,14 @@
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-kapt'
+apply plugin: 'com.android.legacy-kapt'
 apply from: '../upload.gradle'
 
 android {
-    compileSdkVersion rootProject.ext.android["compileSdkVersion"]
+    namespace 'com.didichuxing.doraemonkit.weex'
+    compileSdk rootProject.ext.android["compileSdkVersion"]
 
     defaultConfig {
-        minSdkVersion rootProject.ext.android["minSdkVersion_16"]
-        targetSdkVersion rootProject.ext.android["targetSdkVersion"]
-        versionCode rootProject.ext.android["versionCode"]
-        versionName rootProject.ext.android["versionName"]
+        minSdk rootProject.ext.android["minSdkVersion_16"]
 
-        lintOptions {
-            abortOnError false
-        }
     }
 
     buildTypes {
@@ -28,7 +22,12 @@ android {
         }
     }
 
-    lintOptions {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lint {
         abortOnError false
     }
 
@@ -39,22 +38,18 @@ android {
         //viewBinding = true
     }
 
-
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+    }
+}
 
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    if (needKotlinV14()) {
-        compileOnly rootProject.ext.dependencies["kotlin_v14"]
-    } else {
-        compileOnly rootProject.ext.dependencies["kotlin_v13"]
-    }
+    compileOnly rootProject.ext.dependencies["kotlin"]
     implementation rootProject.ext.dependencies["appcompat"]
     implementation rootProject.ext.dependencies["constraintLayout"]
     implementation rootProject.ext.dependencies["material"]

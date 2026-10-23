@@ -1,5 +1,7 @@
 package com.didichuxing.doraemonkit.kit.mc.ui
 
+import com.didichuxing.doraemonkit.R as CoreR
+
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -40,13 +42,13 @@ class DoKitMcScanActivity : CaptureActivity() {
 
     private fun initTitleBar() {
         val homeTitleBar = HomeTitleBar(this)
-        homeTitleBar.setBackgroundColor(resources.getColor(R.color.foreground_wtf))
+        homeTitleBar.setBackgroundColor(resources.getColor(CoreR.color.foreground_wtf))
         homeTitleBar.setTitle(resources.getString(R.string.dk_kit_multi_control))
-        homeTitleBar.setIcon(R.mipmap.dk_close_icon)
+        homeTitleBar.setIcon(CoreR.mipmap.dk_close_icon)
         homeTitleBar.setListener { finish() }
         val params = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            resources.getDimension(R.dimen.dk_home_title_height).toInt()
+            resources.getDimension(CoreR.dimen.dk_home_title_height).toInt()
         )
         (findViewById<View>(android.R.id.content) as FrameLayout).addView(homeTitleBar, params)
     }

@@ -1,54 +1,63 @@
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
 apply from: '../upload.gradle'
 
 android {
-    compileSdkVersion rootProject.ext.android["compileSdkVersion"]
+    namespace 'com.didichuxing.doraemonkit'
+    compileSdk rootProject.ext.android["compileSdkVersion"]
 
     defaultConfig {
-        minSdkVersion rootProject.ext.android["minSdkVersion_16"]
-        targetSdkVersion rootProject.ext.android["targetSdkVersion"]
-        versionCode rootProject.ext.android["versionCode"]
-        versionName rootProject.ext.android["versionName"]
+        minSdk rootProject.ext.android["minSdkVersion_16"]
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        javaCompileOptions { annotationProcessorOptions { includeCompileClasspath = true } }
+
     }
 
     buildTypes {
         debug {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
-    lintOptions {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lint {
         abortOnError false
     }
 
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+    }
+}
 
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    //implementation rootProject.ext.dependencies["appcompat"]
+    // Public no-op view/fragment APIs expose AndroidX types to consumers.
+    api rootProject.ext.dependencies["fragment"]
+    api rootProject.ext.dependencies["annotation"]
     //compileOnly rootProject.ext.dependencies["okio"]
-    if (needKotlinV14()) {
-        compileOnly rootProject.ext.dependencies["kotlin_v14"]
-    } else {
-        compileOnly rootProject.ext.dependencies["kotlin_v13"]
-    }
+    compileOnly rootProject.ext.dependencies["kotlin"]
     compileOnly rootProject.ext.dependencies["okhttp_v3"]
     //三大图片框架
     compileOnly rootProject.ext.dependencies["glide"]
     compileOnly rootProject.ext.dependencies["picasso"]
     compileOnly rootProject.ext.dependencies["fresco"]
-    compileOnly rootProject.ext.dependencies["hummer"]
+    // The no-op bridge only exposes HummerContext from hummer-sdk in its
+    // signature. Hummer's optional UI/native runtime is supplied by the host.
+    compileOnly('io.github.didi.hummer:hummer-sdk:0.3.23') {
+        transitive = false
+    }
 }
 repositories {
     mavenCentral()

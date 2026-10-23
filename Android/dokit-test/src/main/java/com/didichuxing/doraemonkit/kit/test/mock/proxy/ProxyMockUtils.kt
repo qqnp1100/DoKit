@@ -6,6 +6,7 @@ import com.didichuxing.doraemonkit.kit.network.NetworkManager
 import com.didichuxing.doraemonkit.kit.network.okhttp.InterceptorUtil
 import com.didichuxing.doraemonkit.util.EncryptUtils
 import okhttp3.Headers
+import okhttp3.Headers.Companion.toHeaders
 import okhttp3.Request
 import okhttp3.Response
 import java.text.SimpleDateFormat
@@ -36,24 +37,24 @@ object ProxyMockUtils {
                 map[e[0]] = e[1]
             }
         }
-        return Headers.of(map)
+        return map.toHeaders()
     }
 
     fun createProxyRequest(did: String, request: Request): ProxyRequest {
         val aid = ControlEventManager.getCurrentEventId()
-        val url = request.url()
-        val scheme = url.scheme()
-        val host = url.host()
-        val path = url.encodedPath()
-        val query = string(url.encodedQuery())
-        val fragment = string(url.fragment())
-        val headers = createHeaders(request.headers())
-        val body = request.body()
+        val url = request.url
+        val scheme = url.scheme
+        val host = url.host
+        val path = url.encodedPath
+        val query = string(url.encodedQuery)
+        val fragment = string(url.fragment)
+        val headers = createHeaders(request.headers)
+        val body = request.body
         val contentType = (body?.contentType() ?: "").toString()
         val contentLength = body?.contentLength() ?: 0
         val bodyString = body?.string() ?: ""
         val searchKey = EncryptUtils.encryptMD5ToString(path)
-        val method = request.method()
+        val method = request.method
         val clientProtocol = "http"
         return ProxyRequest(
             did, aid, url.toString(), scheme, host, path, query, fragment,
@@ -69,8 +70,8 @@ object ProxyMockUtils {
     }
 
     fun createProxyResponse(did: String, response: Response): ProxyResponse {
-        val headers = createHeaders(response.headers())
-        val code = response.code()
+        val headers = createHeaders(response.headers)
+        val code = response.code
         val body = response.peekBody(Long.MAX_VALUE)
         val contentType = (body?.contentType() ?: "").toString()
         val image = InterceptorUtil.isImg(contentType)
@@ -88,14 +89,14 @@ object ProxyMockUtils {
             source = "image"
         }
 
-        val protocol = response.protocol().toString()
+        val protocol = response.protocol.toString()
 
         return ProxyResponse(did, headers, contentType, contentLength, bodyString, code, image, source, protocol)
     }
 
     fun filterRequest(request: Request): Boolean {
-        val scheme = request.url().scheme()
-        val host = request.url().host()
+        val scheme = request.url.scheme
+        val host = request.url.host
         if (host.equals(NetworkManager.MOCK_HOST, ignoreCase = true)) {
             return true
         } else if (host.equals(NetworkManager.DOKIT_HOST, ignoreCase = true)) {

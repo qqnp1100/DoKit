@@ -1,53 +1,61 @@
-apply plugin: 'kotlin'
-apply plugin: 'kotlin-kapt'
-apply from: '../upload.gradle'
-
-sourceSets {
-    main {
-        java {
-            srcDirs += []
-        }
-        kotlin {
-            srcDirs += ['src/main/kotlin', 'src/main/java']
-        }
-    }
-
-
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '2.4.21'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
 }
 
-compileKotlin {
-    kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8
-}
+group = providers.gradleProperty('dokitPublishingGroup').get()
+version = providers.gradleProperty('dokitPublishingVersion').get()
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
+}
+kotlin {
+    compilerOptions { jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17 }
+}
 
 dependencies {
-    compileOnly gradleApi()
-    compileOnly localGroovy()
-
-    //版本不能太高 否则会跟项目的as版本冲突
-    compileOnly "com.android.tools.build:gradle:${rootProject.ext.android["agp_plugin_verson"]}"
-    /* 👇👇👇👇 引用这两个模块 👇👇👇👇 */
-    api "com.didiglobal.booster:booster-api:${rootProject.ext.android["booster_version"]}"
-    api "com.didiglobal.booster:booster-transform-asm:${rootProject.ext.android["booster_version"]}"
+    compileOnly 'com.android.tools.build:gradle-api:9.4.1'
+    implementation 'org.ow2.asm:asm:9.9'
+    implementation 'org.ow2.asm:asm-tree:9.9'
+    implementation 'org.ow2.asm:asm-commons:9.9'
+    implementation 'org.ow2.asm:asm-analysis:9.9'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.ow2.asm:asm-util:9.9'
+    testImplementation 'org.ow2.asm:asm-analysis:9.9'
+    testImplementation 'com.android.tools.build:gradle-api:9.4.1'
+    testImplementation gradleTestKit()
 }
-
-/**
- * 删除指定目录下的文件
- */
-task deleteSource(type: Delete) {
-    doLast {
-        delete './src/main/kotlin'
+gradlePlugin {
+    plugins {
+        dokit {
+            id = 'com.didi.dokit'
+            implementationClass = 'com.didichuxing.doraemonkit.plugin.DoKitPlugin'
+            displayName = 'DoKit Android instrumentation'
+            description = 'DoKit instrumentation for AGP 9.4.1 using public scoped artifacts.'
+        }
+        dokitDebug {
+            id = 'com.didi.dokit.debug'
+            implementationClass = 'com.didichuxing.doraemonkit.plugin.DoKitPlugin'
+            displayName = 'DoKit local compatibility alias'
+            description = 'Compatibility alias of com.didi.dokit.'
+        }
     }
 }
-
-
-
-
-repositories {
-    google()
-//    jcenter()
-    mavenCentral()
+publishing {
+    publications.withType(MavenPublication).configureEach {
+        if (name == 'pluginMaven') { artifactId = 'dokitx-plugin' }
+    }
+    repositories { maven { name = 'migration'; url = layout.buildDirectory.dir('migration-repository') } }
 }
 
-
-
+tasks.withType(Test).configureEach {
+    systemProperty 'dokit.sourceRoot', projectDir.absolutePath
+    systemProperty 'dokit.androidSdk', providers.gradleProperty('dokit.androidSdk').orElse('').get()
+    systemProperty 'dokit.functionalOffline', gradle.startParameter.offline.toString()
+    systemProperty 'dokit.gradleUserHome', gradle.gradleUserHomeDir.absolutePath
+    // Nested AGP fixture builds share the verified Gradle distribution and dependency cache.
+    maxParallelForks = 1
+}

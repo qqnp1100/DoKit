@@ -19,6 +19,7 @@ class MethodInvokNode {
     var currentThreadName: String? = null
     var className: String? = null
     var methodName: String? = null
+    var descriptor: String? = null
     var level = 0
     var children: MutableList<MethodInvokNode> = mutableListOf()
 

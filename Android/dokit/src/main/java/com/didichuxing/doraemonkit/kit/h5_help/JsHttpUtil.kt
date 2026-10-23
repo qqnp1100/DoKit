@@ -17,6 +17,7 @@ import com.didichuxing.doraemonkit.util.DoKitCommUtil
 import com.didichuxing.doraemonkit.util.LogHelper
 import okhttp3.*
 import org.json.JSONObject
+import java.util.Locale
 
 /**
  * ================================================
@@ -148,7 +149,7 @@ object JsHttpUtil {
         }
         val sb = StringBuilder()
         val newUrl: String
-        newUrl = if (NetworkManager.MOCK_SCHEME_HTTP.contains(scheme.toLowerCase())) {
+        newUrl = if (NetworkManager.MOCK_SCHEME_HTTP.contains(scheme.lowercase(Locale.ROOT))) {
             sb.append(NetworkManager.MOCK_SCHEME_HTTP).append(NetworkManager.MOCK_HOST)
                 .append("/api/app/scene/").append(selectedSceneId).toString()
         } else {
@@ -246,7 +247,7 @@ object JsHttpUtil {
         }
         val sb = StringBuilder()
         val newUrl: String
-        newUrl = if (NetworkManager.MOCK_SCHEME_HTTP.contains(scheme.toLowerCase())) {
+        newUrl = if (NetworkManager.MOCK_SCHEME_HTTP.contains(scheme.lowercase(Locale.ROOT))) {
             sb.append(NetworkManager.MOCK_SCHEME_HTTP).append(NetworkManager.MOCK_HOST)
                 .append("/api/app/scene/").append(selectedSceneId).toString()
         } else {
@@ -383,7 +384,7 @@ object JsHttpUtil {
 
 
         val headers = builder.build()
-        return when (requestBean.method?.toUpperCase()) {
+        return when (requestBean.method?.uppercase(Locale.ROOT)) {
             "GET" -> {
                 Request.Builder()
                     .url(requestBean.url!!)

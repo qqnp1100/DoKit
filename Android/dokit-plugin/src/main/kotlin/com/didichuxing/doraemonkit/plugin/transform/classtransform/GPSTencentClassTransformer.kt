@@ -1,12 +1,11 @@
 package com.didichuxing.doraemonkit.plugin.transform.classtransform
 
-import com.didichuxing.doraemonkit.plugin.DoKitExtUtil
+import com.didichuxing.doraemonkit.plugin.DoKitState
 import com.didichuxing.doraemonkit.plugin.extension.DoKitExtension
-import com.didichuxing.doraemonkit.plugin.lastPath
 import com.didichuxing.doraemonkit.plugin.println
-import com.didiglobal.booster.transform.TransformContext
-import com.didiglobal.booster.transform.asm.className
-import org.gradle.api.Project
+import com.didichuxing.doraemonkit.plugin.TransformContext
+import com.didichuxing.doraemonkit.plugin.className
+
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.*
 
@@ -22,27 +21,31 @@ import org.objectweb.asm.tree.*
  * @Description 腾讯地图 hooks
  */
 
-class GPSTencentClassTransformer : AbsClassTransformer() {
+class GPSTencentClassTransformer(state: DoKitState) : AbsClassTransformer(state) {
 
-    override fun transform(project: Project, dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
+    override fun transform(dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
         val className = klass.className
+        if (klass.methods.any { method -> method.instructions.filterIsInstance<MethodInsnNode>().any { it.owner.startsWith("com/didichuxing/doraemonkit/gps_mock/map/") } }) return klass
 
-        if (dokit.gpsEnable && dokit.gps.tencent && DoKitExtUtil.DOKIT_GPS_MOCK_INCLUDE) {
+        if (dokit.gpsEnable && dokit.gps.tencent && state.DOKIT_GPS_MOCK_INCLUDE) {
             //插入腾讯地图相关字节码
             if (className == "com.tencent.map.geolocation.TencentLocationManager") {
                 //持续定位和单次定位
                 klass.methods?.filter {
-                    it.name == "requestSingleFreshLocation" || it.name == "requestLocationUpdates"
+                    (it.name == "requestSingleFreshLocation" || it.name == "requestLocationUpdates") &&
+                        it.access and Opcodes.ACC_STATIC == 0 && org.objectweb.asm.Type.getArgumentTypes(it.desc).let { arguments ->
+                            arguments.size >= 2 && arguments[0].size == 1 && arguments[1].descriptor == "Lcom/tencent/map/geolocation/TencentLocationListener;"
+                        }
                 }?.forEach { methodNode ->
-                    "${context.projectDir.lastPath()}->hook tencent map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}".println()
+                    state.log("${context.variantName}->hook tencent map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}")
                     methodNode?.instructions?.insert(createTencentLocationInsnList())
                 }
 
                 //反注册监听器
                 klass.methods?.find {
-                    it.name == "removeUpdates"
+                    it.name == "removeUpdates" && it.desc == "(Lcom/tencent/map/geolocation/TencentLocationListener;)V" && it.access and Opcodes.ACC_STATIC == 0
                 }.let { methodNode ->
-                    "${context.projectDir.lastPath()}->hook tencent map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}".println()
+                    state.log("${context.variantName}->hook tencent map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}")
                     methodNode?.instructions?.insert(
                         createTencentLocationUnRegisterInsnList()
                     )

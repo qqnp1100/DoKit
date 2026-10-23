@@ -1,0 +1,24 @@
+import groovy.json.JsonSlurper
+
+// Apply to Android projects after google()/mavenCentral(). These exact historical
+// versions were absent there during the target migration. POMs and AARs were
+// checked on 2026-10-22; recorded SHA-256 values and upstream evidence are in
+// gradle/legacy-artifacts.json. Do not widen this archive into a general mirror.
+def legacyArtifacts = new JsonSlurper().parse(rootProject.file('gradle/legacy-artifacts.json'))
+
+repositories {
+    maven {
+        name = 'dokitHistoricalArtifacts'
+        url = uri(legacyArtifacts.repository)
+        metadataSources {
+            mavenPom()
+        }
+        content {
+            legacyArtifacts.artifacts.each { artifact ->
+                // Stricter than a module allowlist: newer versions continue to
+                // use the normal repositories unless separately investigated.
+                includeVersion(artifact.group, artifact.module, artifact.version)
+            }
+        }
+    }
+}

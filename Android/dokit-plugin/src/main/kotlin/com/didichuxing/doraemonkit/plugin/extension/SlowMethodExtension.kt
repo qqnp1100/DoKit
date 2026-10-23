@@ -1,7 +1,7 @@
 package com.didichuxing.doraemonkit.plugin.extension
 
+import org.gradle.api.Action
 import groovy.lang.Closure
-import org.gradle.util.ConfigureUtil
 
 /**
  * ================================================
@@ -38,13 +38,11 @@ open class SlowMethodExtension(
         this.methodSwitch = methodSwitch
     }
 
-    fun stackMethod(closure: Closure<StackMethodExt?>?) {
-        ConfigureUtil.configure(closure, stackMethod)
-    }
+    fun stackMethod(action: Action<StackMethodExt>) { action.execute(stackMethod) }
+    fun stackMethod(closure: Closure<*>) { configureDsl(closure, stackMethod) }
 
-    fun normalMethod(closure: Closure<NormalMethodExt?>?) {
-        ConfigureUtil.configure(closure, normalMethod)
-    }
+    fun normalMethod(action: Action<NormalMethodExt>) { action.execute(normalMethod) }
+    fun normalMethod(closure: Closure<*>) { configureDsl(closure, normalMethod) }
 
     class StackMethodExt(
         //默认阈值为5ms

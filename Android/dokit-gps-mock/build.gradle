@@ -1,18 +1,15 @@
 plugins {
     id 'com.android.library'
 }
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-kapt'
+apply plugin: 'com.android.legacy-kapt'
 apply from: '../upload.gradle'
 
 android {
-    compileSdkVersion rootProject.ext.android["compileSdkVersion"]
+    namespace 'com.didichuxing.doraemonkit.gps_mock'
+    compileSdk rootProject.ext.android["compileSdkVersion"]
 
     defaultConfig {
-        minSdkVersion rootProject.ext.android["minSdkVersion_16"]
-        targetSdkVersion rootProject.ext.android["targetSdkVersion"]
-        versionCode rootProject.ext.android["versionCode"]
-        versionName rootProject.ext.android["versionName"]
+        minSdk rootProject.ext.android["minSdkVersion_16"]
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -29,7 +26,7 @@ android {
         }
     }
 
-    lintOptions {
+    lint {
         abortOnError false
     }
     compileOptions {
@@ -37,9 +34,6 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
 
     sourceSets {
         debug {
@@ -51,6 +45,13 @@ android {
         }
     }
 }
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+    }
+}
+
 
 dependencies {
 
@@ -64,13 +65,8 @@ dependencies {
     implementation rootProject.ext.dependencies["core-ktx"]
     implementation rootProject.ext.dependencies["activity-ktx"]
 
-    if (needKotlinV14()) {
-        implementation rootProject.ext.dependencies["kotlin_v14"]
-        implementation rootProject.ext.dependencies["coroutines-core_v14"]
-    } else {
-        implementation rootProject.ext.dependencies["kotlin_v13"]
-        implementation rootProject.ext.dependencies["coroutines-core_v13"]
-    }
+    implementation rootProject.ext.dependencies["kotlin"]
+    implementation rootProject.ext.dependencies["coroutines-core"]
 
     implementation project(':dokit-util')
     implementation project(':dokit')

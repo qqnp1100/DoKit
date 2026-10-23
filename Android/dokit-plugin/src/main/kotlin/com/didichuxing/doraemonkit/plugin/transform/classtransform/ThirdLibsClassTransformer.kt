@@ -1,12 +1,11 @@
 package com.didichuxing.doraemonkit.plugin.transform.classtransform
 
-import com.didichuxing.doraemonkit.plugin.DoKitExtUtil
+import com.didichuxing.doraemonkit.plugin.DoKitState
 import com.didichuxing.doraemonkit.plugin.extension.DoKitExtension
-import com.didichuxing.doraemonkit.plugin.lastPath
 import com.didichuxing.doraemonkit.plugin.println
-import com.didiglobal.booster.transform.TransformContext
-import com.didiglobal.booster.transform.asm.className
-import org.gradle.api.Project
+import com.didichuxing.doraemonkit.plugin.TransformContext
+import com.didichuxing.doraemonkit.plugin.className
+
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.*
 
@@ -22,20 +21,21 @@ import org.objectweb.asm.tree.*
  * @Description 用一句话说明文件功能
  */
 
-class ThirdLibsClassTransformer : AbsClassTransformer() {
+class ThirdLibsClassTransformer(state: DoKitState) : AbsClassTransformer(state) {
 
-    override fun transform(project: Project, dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
+    override fun transform(dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
         val className = klass.className
+        if (klass.methods.any { method -> method.instructions.filterIsInstance<MethodInsnNode>().any { it.owner.startsWith("com/didichuxing/doraemonkit/aop/DokitThirdLibInfo") } }) return klass
 
-        if (dokit.thirdLibEnable) {
+        if (dokit.thirdLibEnable && state.THIRD_LIBINFO_SWITCH) {
             //查找DoraemonKitReal&pluginConfig方法并插入指定字节码
             if (className == "com.didichuxing.doraemonkit.DoKitReal") {
                 //三方库信息注入
                 klass.methods?.find {
                     it.name == "initThirdLibraryInfo"
                 }.let { methodNode ->
-                    "${context.projectDir.lastPath()}->insert map to the DoKitReal initThirdLibraryInfo succeed".println()
-                    methodNode?.instructions?.insert(createThirdLibInfoInsnList())
+                    state.log("${context.variantName}->insert map to the DoKitReal initThirdLibraryInfo succeed")
+                    methodNode?.let { it.instructions.insert(createThirdLibInfoInsnList(it.maxLocals++)) }
                 }
             }
         }
@@ -46,7 +46,7 @@ class ThirdLibsClassTransformer : AbsClassTransformer() {
     /**
      * 创建pluginConfig代码指令
      */
-    private fun createThirdLibInfoInsnList(): InsnList {
+    private fun createThirdLibInfoInsnList(local: Int): InsnList {
         //val insnList = InsnList()
         return with(InsnList()) {
             //new HashMap
@@ -54,9 +54,9 @@ class ThirdLibsClassTransformer : AbsClassTransformer() {
             add(InsnNode(Opcodes.DUP))
             add(MethodInsnNode(Opcodes.INVOKESPECIAL, "java/util/HashMap", "<init>", "()V", false))
             //保存变量
-            add(VarInsnNode(Opcodes.ASTORE, 0))
-            DoKitExtUtil.THIRD_LIB_INFOS.forEach { thirdLibInfo ->
-                add(VarInsnNode(Opcodes.ALOAD, 0))
+            add(VarInsnNode(Opcodes.ASTORE, local))
+            state.THIRD_LIB_INFOS.forEach { thirdLibInfo ->
+                add(VarInsnNode(Opcodes.ALOAD, local))
                 add(LdcInsnNode(thirdLibInfo.variant))
                 add(LdcInsnNode(thirdLibInfo.fileSize.toString()))
                 add(
@@ -65,13 +65,13 @@ class ThirdLibsClassTransformer : AbsClassTransformer() {
                         "java/util/Map",
                         "put",
                         "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
-                        false
+                        true
                     )
                 )
                 add(InsnNode(Opcodes.POP))
             }
             //将HashMap注入到DokitPluginConfig中
-            add(VarInsnNode(Opcodes.ALOAD, 0))
+            add(VarInsnNode(Opcodes.ALOAD, local))
             add(
                 MethodInsnNode(
                     Opcodes.INVOKESTATIC,

@@ -1,12 +1,11 @@
 package com.didichuxing.doraemonkit.plugin.transform.classtransform
 
-import com.didichuxing.doraemonkit.plugin.DoKitExtUtil
+import com.didichuxing.doraemonkit.plugin.DoKitState
 import com.didichuxing.doraemonkit.plugin.extension.DoKitExtension
-import com.didichuxing.doraemonkit.plugin.lastPath
 import com.didichuxing.doraemonkit.plugin.println
-import com.didiglobal.booster.transform.TransformContext
-import com.didiglobal.booster.transform.asm.className
-import org.gradle.api.Project
+import com.didichuxing.doraemonkit.plugin.TransformContext
+import com.didichuxing.doraemonkit.plugin.className
+
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.*
 
@@ -22,35 +21,36 @@ import org.objectweb.asm.tree.*
  * @Description 高德地图 hooks
  */
 
-class GPSAMapClassTransformer : AbsClassTransformer() {
+class GPSAMapClassTransformer(state: DoKitState) : AbsClassTransformer(state) {
 
-    override fun transform(project: Project, dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
+    override fun transform(dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
         val className = klass.className
+        if (klass.methods.any { method -> method.instructions.filterIsInstance<MethodInsnNode>().any { it.owner.startsWith("com/didichuxing/doraemonkit/gps_mock/map/") } }) return klass
 
-        if (dokit.gpsEnable && dokit.gps.amap && DoKitExtUtil.DOKIT_GPS_MOCK_INCLUDE) {
+        if (dokit.gpsEnable && dokit.gps.amap && state.DOKIT_GPS_MOCK_INCLUDE) {
             //插入高德地图定位相关字节码
             if (className == "com.amap.api.location.AMapLocationClient") {
                 //设置监听器
                 klass.methods?.find {
-                    it.name == "setLocationListener"
+                    it.name == "setLocationListener" && it.desc == "(Lcom/amap/api/location/AMapLocationListener;)V" && it.access and Opcodes.ACC_STATIC == 0
                 }.let { methodNode ->
-                    "${context.projectDir.lastPath()}->hook amap map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}".println()
+                    state.log("${context.variantName}->hook amap map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}")
                     methodNode?.instructions?.insert(createAmapLocationInsnList())
                 }
                 //反注册监听器
                 klass.methods?.find {
-                    it.name == "unRegisterLocationListener"
+                    it.name == "unRegisterLocationListener" && it.desc == "(Lcom/amap/api/location/AMapLocationListener;)V" && it.access and Opcodes.ACC_STATIC == 0
                 }.let { methodNode ->
-                    "${context.projectDir.lastPath()}->hook amap map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}".println()
+                    state.log("${context.variantName}->hook amap map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}")
                     methodNode?.instructions?.insert(
                         createAmapLocationUnRegisterInsnList()
                     )
                 }
                 //代理getLastKnownLocation
                 klass.methods?.find {
-                    it.name == "getLastKnownLocation"
+                    it.name == "getLastKnownLocation" && it.desc == "()Lcom/amap/api/location/AMapLocation;" && it.access and Opcodes.ACC_STATIC == 0
                 }.let { methodNode ->
-                    "${context.projectDir.lastPath()}->hook AMapLocationClient getLastKnownLocation  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}".println()
+                    state.log("${context.variantName}->hook AMapLocationClient getLastKnownLocation  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}")
                     methodNode?.instructions?.insert(createAMapClientLastKnownLocation())
                 }
 
@@ -61,7 +61,7 @@ class GPSAMapClassTransformer : AbsClassTransformer() {
 //                klass.methods?.find {
 //                    it.name == "setLocationSource"
 //                }.let { methodNode ->
-//                    "${context.projectDir.lastPath()}->hook amap map LocationSource  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}".println()
+//                    "${context.variantName}->hook amap map LocationSource  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}".println()
 //                    methodNode?.instructions?.insert(createAmapLocationSourceInsnList())
 //                }
 //            }
@@ -70,16 +70,16 @@ class GPSAMapClassTransformer : AbsClassTransformer() {
             if (className == "com.amap.api.navi.AMapNavi") {
                 //设置监听器
                 klass.methods?.find {
-                    it.name == "addAMapNaviListener"
+                    it.name == "addAMapNaviListener" && it.desc == "(Lcom/amap/api/navi/AMapNaviListener;)V" && it.access and Opcodes.ACC_STATIC == 0
                 }.let { methodNode ->
-                    "${context.projectDir.lastPath()}->hook amap map navi  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}".println()
+                    state.log("${context.variantName}->hook amap map navi  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}")
                     methodNode?.instructions?.insert(createAmapNaviInsnList())
                 }
                 //反注册监听器
                 klass.methods?.find {
-                    it.name == "removeAMapNaviListener"
+                    it.name == "removeAMapNaviListener" && it.desc == "(Lcom/amap/api/navi/AMapNaviListener;)V" && it.access and Opcodes.ACC_STATIC == 0
                 }.let { methodNode ->
-                    "${context.projectDir.lastPath()}->hook amap map navi  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}".println()
+                    state.log("${context.variantName}->hook amap map navi  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}")
                     methodNode?.instructions?.insert(
                         createAmapNaviUnRegisterInsnList()
                     )

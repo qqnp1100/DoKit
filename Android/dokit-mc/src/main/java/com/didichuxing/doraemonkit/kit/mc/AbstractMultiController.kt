@@ -76,6 +76,7 @@ abstract class AbstractMultiController(private val webSocketClient: WebSocketCli
                     }
                 }
             }
+            else -> Unit
         }
         return 1000
     }
@@ -154,6 +155,7 @@ abstract class AbstractMultiController(private val webSocketClient: WebSocketCli
                 }
             }
 
+            else -> Unit
         }
         return false
     }

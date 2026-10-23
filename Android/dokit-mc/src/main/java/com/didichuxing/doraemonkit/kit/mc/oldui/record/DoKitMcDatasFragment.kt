@@ -1,5 +1,7 @@
 package com.didichuxing.doraemonkit.kit.mc.oldui.record
 
+import com.didichuxing.doraemonkit.R as CoreR
+
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
@@ -73,7 +75,7 @@ class DoKitMcDatasFragment : BaseFragment() {
             adapter = mAdapter
             layoutManager = LinearLayoutManager(requireActivity())
             val decoration = DividerItemDecoration(DividerItemDecoration.VERTICAL)
-            decoration.setDrawable(resources.getDrawable(R.drawable.dk_divider))
+            decoration.setDrawable(resources.getDrawable(CoreR.drawable.dk_divider))
             addItemDecoration(decoration)
         }
 

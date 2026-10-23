@@ -30,6 +30,7 @@ object WSServerProcessor {
 
             }
 
+            else -> Unit
         }
     }
 

@@ -1,0 +1,95 @@
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.CacheableTask
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
+
+import javax.inject.Inject
+
+/** Preserve annotation-processor service descriptors through built-in Kotlin. */
+@CacheableTask
+abstract class MergeDoKitKaptServices extends DefaultTask {
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract ConfigurableFileCollection getServiceFiles()
+
+    @OutputDirectory
+    abstract DirectoryProperty getOutputDirectory()
+
+    @OutputFile
+    abstract RegularFileProperty getConsumerRulesFile()
+
+    @Inject
+    abstract FileSystemOperations getFileSystemOperations()
+
+    @TaskAction
+    void mergeServices() {
+        def services = new TreeMap<String, SortedSet<String>>()
+        serviceFiles.files.findAll { it.isFile() }.each { source ->
+            def providers = services.computeIfAbsent(source.name) { new TreeSet<String>() }
+            source.readLines('UTF-8').each { line ->
+                def comment = line.indexOf('#')
+                def provider = (comment >= 0 ? line.substring(0, comment) : line).trim()
+                if (provider) providers.add(provider)
+            }
+        }
+        def output = outputDirectory.get().asFile
+        fileSystemOperations.delete { delete(output) }
+        output.mkdirs()
+        services.each { name, providers ->
+            if (!providers.isEmpty()) {
+                def descriptor = new File(output, "META-INF/services/${name}")
+                descriptor.parentFile.mkdirs()
+                descriptor.setText(providers.join('\n') + '\n', 'UTF-8')
+            }
+        }
+        def rules = ['# Generated from this AAR\'s annotation-processor service descriptors.']
+        services.each { name, providers ->
+            if (name == 'com.didichuxing.doraemonkit.kit.AbstractKit') {
+                rules.add("-keep,allowoptimization class ${name}")
+            } else if (name == 'com.didichuxing.doraemonkit.kit.core.DokitAbility') {
+                rules.add("-keep,allowoptimization interface ${name}")
+            }
+            providers.each { provider ->
+                rules.add("-keep,allowoptimization class ${provider} { public <init>(); }")
+            }
+        }
+        def consumerRules = consumerRulesFile.get().asFile
+        consumerRules.parentFile.mkdirs()
+        consumerRules.setText(rules.join('\n') + '\n', 'UTF-8')
+    }
+}
+
+// Kapt tasks are registered after onVariants. Keep a live task collection until
+// inputs are resolved, and read declared outputs rather than intermediates.
+androidComponents.onVariants(androidComponents.selector().all()) { variant ->
+    def variantTaskName = variant.name.substring(0, 1).toUpperCase(Locale.ROOT) + variant.name.substring(1)
+    def kaptTaskName = "kapt${variantTaskName}Kotlin"
+    def kaptTasks = tasks.matching { it.name == kaptTaskName }
+    def servicesTask = tasks.register("merge${variantTaskName}DoKitKaptServices", MergeDoKitKaptServices) {
+        dependsOn(kaptTasks)
+        serviceFiles.from(kaptTasks.elements.map { matchingTasks ->
+            if (matchingTasks.empty) {
+                throw new GradleException("Missing legacy kapt task ${kaptTaskName}")
+            }
+            matchingTasks.collect { task ->
+                task.outputs.files.asFileTree.matching {
+                    include('META-INF/services/*')
+                }
+            }
+        })
+        outputDirectory.set(layout.buildDirectory.dir("generated/dokitKaptServices/${variant.name}"))
+        consumerRulesFile.set(layout.buildDirectory.file("generated/dokitKaptServiceRules/${variant.name}/consumer-rules.pro"))
+    }
+    variant.sources.resources.addGeneratedSourceDirectory(servicesTask) { it.outputDirectory }
+    if (plugins.hasPlugin('com.android.library')) {
+        variant.consumerProguardFiles.add(servicesTask.flatMap { it.consumerRulesFile })
+    }
+}

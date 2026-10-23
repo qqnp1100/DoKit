@@ -1,0 +1,28 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'dokit-maven-consumer'
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        // DoKit artifacts must come from this migration run, never from remote
+        // Maven, a project dependency or an included-build substitution.
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = 'migration'
+                    url = uri(providers.gradleProperty('migrationRepository').get())
+                }
+            }
+            filter { includeGroup('com.didichuxing.doraemonkit') }
+        }
+        google()
+        mavenCentral()
+    }
+}

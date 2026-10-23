@@ -1,5 +1,7 @@
 package com.didichuxing.doraemonkit.kit.mc.oldui.client
 
+import com.didichuxing.doraemonkit.R as CoreR
+
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -94,7 +96,7 @@ class DoKitMcClientHistoryFragment : BaseFragment() {
             adapter = mAdapter
             layoutManager = LinearLayoutManager(requireActivity())
             val decoration = DividerItemDecoration(DividerItemDecoration.VERTICAL)
-            decoration.setDrawable(resources.getDrawable(R.drawable.dk_divider))
+            decoration.setDrawable(resources.getDrawable(CoreR.drawable.dk_divider))
             addItemDecoration(decoration)
         }
 

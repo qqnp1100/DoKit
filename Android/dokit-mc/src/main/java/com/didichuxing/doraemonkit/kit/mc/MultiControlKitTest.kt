@@ -1,5 +1,7 @@
 package com.didichuxing.doraemonkit.kit.mc
 
+import com.didichuxing.doraemonkit.R as CoreR
+
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -28,7 +30,7 @@ class MultiControlKitTest : AbstractKit() {
 
     override fun onClickWithReturn(activity: Activity): Boolean {
         if (!DokitPluginConfig.SWITCH_DOKIT_PLUGIN) {
-            ToastUtils.showShort(DoKitCommUtil.getString(R.string.dk_plugin_close_tip))
+            ToastUtils.showShort(DoKitCommUtil.getString(CoreR.string.dk_plugin_close_tip))
             return false
         }
         val intent = Intent(activity, DoKitMcActivity::class.java)

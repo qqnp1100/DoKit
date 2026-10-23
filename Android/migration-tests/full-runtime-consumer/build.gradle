@@ -1,0 +1,61 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:9.4.1'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21'
+    }
+}
+
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.didichuxing.dokit.migration.fullconsumer'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.didichuxing.dokit.migration.fullconsumer'
+        minSdk 21
+        targetSdk 31
+        versionCode 1
+        versionName '1.0'
+        ndk { abiFilters 'arm64-v8a' }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    packaging {
+        resources { merges += ['META-INF/services/*'] }
+        jniLibs {
+            // Match the verified Demo ABI boundary and shared C++ runtime rule.
+            excludes += ['**/armeabi/**', '**/armeabi-v7a/**', '**/x86/**', '**/x86_64/**']
+            pickFirsts += ['lib/arm64-v8a/libc++_shared.so']
+        }
+    }
+    lint {
+        // This private consumer verifies the preserved targetSdk31 contract.
+        disable += ['ExpiredTargetSdkVersion']
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+    }
+}
+
+def migrationVersion = providers.gradleProperty('migrationVersion').getOrElse('3.7.14.10-kotlin-2.4.21-SNAPSHOT')
+dependencies {
+    ['dokitx', 'dokitx-ft', 'dokitx-mc', 'dokitx-autotest', 'dokitx-gps-mock', 'dokitx-pthread-hook'].each { artifact ->
+        implementation "com.didichuxing.doraemonkit:${artifact}:${migrationVersion}"
+    }
+}

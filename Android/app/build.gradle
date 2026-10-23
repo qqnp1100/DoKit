@@ -1,19 +1,23 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-kapt'
+plugins {
+    id 'com.android.application'
+    id 'com.android.legacy-kapt'
+    id 'com.didi.dokit'
+}
 apply from: 'doraemonkit.gradle'
 //apply plugin: 'com.didiglobal.booster'
 
 android {
+    namespace 'com.didichuxing.doraemondemo'
     compileSdkVersion rootProject.ext.android["compileSdkVersion"]
     defaultConfig {
-        applicationId rootProject.ext.android["applicationId"]
+        applicationId providers.gradleProperty('DOKIT_MIGRATION_APPLICATION_ID')
+            .getOrElse(rootProject.ext.android["applicationId"])
         minSdkVersion rootProject.ext.android["minSdkVersion_21"]
         targetSdkVersion rootProject.ext.android["targetSdkVersion"]
         versionCode rootProject.ext.android["versionCode"]
         versionName rootProject.ext.android["versionName"]
         ndk {
-            abiFilters "armeabi", "arm64-v8a"
+            abiFilters "arm64-v8a"
         }
         multiDexEnabled true
     }
@@ -27,19 +31,21 @@ android {
     }
     buildTypes {
         debug {
+            manifestPlaceholders['BAIDU_MAP_API_KEY'] = providers.gradleProperty('BAIDU_MAP_API_KEY')
+                .orElse(providers.environmentVariable('BAIDU_MAP_API_KEY')).getOrElse('')
             resValue("string", "dokit_db_Person.db", "a_password")
             debuggable true
             minifyEnabled false
             shrinkResources false
             signingConfig signingConfigs.release
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
 //            debuggable true
             minifyEnabled false
             shrinkResources false
             signingConfig signingConfigs.release
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 //    flavorDimensions "default"
@@ -66,21 +72,15 @@ android {
     sourceSets {
         debug {
             manifest.srcFile 'src/debug/java/AndroidManifest.xml'
-            jniLibs.srcDir 'libs'
         }
 
         release {
             manifest.srcFile 'src/release/java/AndroidManifest.xml'
-            jniLibs.srcDir 'libs'
         }
     }
 
 
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-
-    lintOptions {
+    lint {
         abortOnError false
     }
 
@@ -89,18 +89,30 @@ android {
      */
     buildFeatures {
         viewBinding = true
+        resValues = true
     }
 
 
-    packagingOptions {
-        //dokit ktor pickFirst
-//        pickFirst 'META-INF/io.netty.versions.properties'
-//        pickFirst 'META-INF/INDEX.LIST'
-        pickFirst 'lib/x86_64/libc++_shared.so'
-        pickFirst 'lib/arm64-v8a/libc++_shared.so'
-        pickFirst 'lib/armeabi-v7a/libc++_shared.so'
-        pickFirst 'lib/x86/libc++_shared.so'
-        pickFirst 'lib/armeabi/libc++_shared.so'
+    packaging {
+        resources {
+            // AutoService providers from every enabled extension must survive.
+            merges += ['META-INF/services/*']
+        }
+        jniLibs {
+            // MergeNativeLibs runs before the APK ABI filter; exclude unsupported
+            // Demo ABIs here as well so their unused C++ runtimes do not collide.
+            excludes += ['**/armeabi/**', '**/armeabi-v7a/**', '**/x86/**', '**/x86_64/**']
+            // Weex/Matrix share this entry. Preserve Weex's existing r18b copy
+            // (59aa4cc...) and assert the APK hash + imported-symbol union via
+            // scripts/verify-native-cpp-runtime.py; see gradle/native-cpp-providers.json.
+            pickFirsts += ['lib/arm64-v8a/libc++_shared.so']
+        }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
     }
 }
 
@@ -148,67 +160,57 @@ dokit {
 
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    // dokit-gps-mock exposes the identical Baidu JAR and packages the SOs.
+    // Keep a single owner so D8/native merging does not see duplicate inputs.
 
-    implementation project(path: ':dokit-util')
-    implementation project(path: ':dokit-mc')
-    implementation project(path: ':dokit-autotest')
-    implementation project(path: ':dokit-test')
+    debugImplementation project(path: ':dokit-util')
 
     testImplementation rootProject.ext.dependencies["junit"]
-    implementation rootProject.ext.dependencies["constraintLayout"]
+    debugImplementation rootProject.ext.dependencies["constraintLayout"]
     implementation rootProject.ext.dependencies["multidex"]
-    implementation rootProject.ext.dependencies["flexbox"]
-    implementation rootProject.ext.dependencies["lifecycle-viewmodel-savedstate"]
+    debugImplementation rootProject.ext.dependencies["flexbox"]
+    debugImplementation rootProject.ext.dependencies["lifecycle-viewmodel-savedstate"]
     implementation rootProject.ext.dependencies["appcompat"]
 
     implementation rootProject.ext.dependencies["material"]
-    if (needKotlinV14()) {
-        implementation rootProject.ext.dependencies["kotlin_v14"]
-        implementation rootProject.ext.dependencies["coroutines-core_v14"]
-        implementation rootProject.ext.dependencies["coroutines-android_v14"]
-        implementation rootProject.ext.dependencies["coil_v13"]
-    } else {
-        implementation rootProject.ext.dependencies["kotlin_v13"]
-        implementation rootProject.ext.dependencies["coroutines-core_v13"]
-        implementation rootProject.ext.dependencies["coroutines-android_v13"]
-        implementation rootProject.ext.dependencies["coil_v11"]
-    }
-    implementation rootProject.ext.dependencies["fragment"]
-    implementation rootProject.ext.dependencies["fragment-ktx"]
-    implementation rootProject.ext.dependencies["retrofit2"]
-    implementation rootProject.ext.dependencies["retrofit2_gson"]
-    implementation rootProject.ext.dependencies["retrofit2_scalars"]
-    implementation rootProject.ext.dependencies["retrofit2_rxjava2"]
-    implementation rootProject.ext.dependencies["rxAndroid"]
-    implementation rootProject.ext.dependencies["okhttp_v3"]
-    implementation rootProject.ext.dependencies["okgo"]
-    implementation rootProject.ext.dependencies["glide"]
+    implementation rootProject.ext.dependencies["kotlin"]
+    debugImplementation rootProject.ext.dependencies["coroutines-core"]
+    debugImplementation rootProject.ext.dependencies["coroutines-android"]
+    debugImplementation rootProject.ext.dependencies["coil"]
+    debugImplementation rootProject.ext.dependencies["fragment"]
+    debugImplementation rootProject.ext.dependencies["fragment-ktx"]
+    debugImplementation rootProject.ext.dependencies["retrofit2"]
+    debugImplementation rootProject.ext.dependencies["retrofit2_gson"]
+    debugImplementation rootProject.ext.dependencies["retrofit2_scalars"]
+    debugImplementation rootProject.ext.dependencies["retrofit2_rxjava2"]
+    debugImplementation rootProject.ext.dependencies["rxAndroid"]
+    debugImplementation rootProject.ext.dependencies["okhttp_v3"]
+    debugImplementation rootProject.ext.dependencies["okgo"]
+    debugImplementation rootProject.ext.dependencies["glide"]
 
 //    implementation rootProject.ext.dependencies["glide_okhttp3"]
-    kapt rootProject.ext.dependencies["glide_compiler"]
+    kaptDebug rootProject.ext.dependencies["glide_compiler"]
 
-    implementation rootProject.ext.dependencies["picasso"]
-    implementation rootProject.ext.dependencies["fresco"]
-    implementation rootProject.ext.dependencies["fresco-processors"]
-    implementation rootProject.ext.dependencies["image-loader"]
-    implementation rootProject.ext.dependencies["room_runtime"]
-    implementation rootProject.ext.dependencies["wcdb"]
-    implementation rootProject.ext.dependencies["jsoup"]
+    debugImplementation rootProject.ext.dependencies["picasso"]
+    debugImplementation rootProject.ext.dependencies["fresco"]
+    debugImplementation rootProject.ext.dependencies["fresco-processors"]
+    debugImplementation rootProject.ext.dependencies["image-loader"]
+    debugImplementation rootProject.ext.dependencies["room_runtime"]
+    debugImplementation rootProject.ext.dependencies["wcdb"]
+    debugImplementation rootProject.ext.dependencies["jsoup"]
     //weex相关
-    implementation rootProject.ext.dependencies["weex_inspector"]
-    implementation rootProject.ext.dependencies["weex_sdk"]
-    implementation rootProject.ext.dependencies["utilcode"]
-    implementation rootProject.ext.dependencies["brvah"]
+    debugImplementation rootProject.ext.dependencies["weex_inspector"]
+    debugImplementation rootProject.ext.dependencies["weex_sdk"]
+    debugImplementation rootProject.ext.dependencies["utilcode"]
+    debugImplementation rootProject.ext.dependencies["brvah"]
 
-    implementation rootProject.ext.dependencies["easypermissions"]
-    releaseImplementation rootProject.ext.dependencies["okgo"]
+    debugImplementation rootProject.ext.dependencies["easypermissions"]
     //高德地图定位
-    implementation rootProject.ext.dependencies["amap_location"]
+    debugImplementation rootProject.ext.dependencies["amap_location"]
     //高德搜索
-    implementation rootProject.ext.dependencies["amap_search"]
+    debugImplementation rootProject.ext.dependencies["amap_search"]
     //高德地图
-    implementation rootProject.ext.dependencies["amap_navi"]
+    debugImplementation rootProject.ext.dependencies["amap_navi"]
     //腾讯地图定位
 //    implementation rootProject.ext.dependencies["tencent_location"]
 //    implementation rootProject.ext.dependencies["tencent_map"]
@@ -217,12 +219,10 @@ dependencies {
     //百度地图定位
 //    implementation files('libs/BaiduLBS_Android.jar')
     //腾讯x5
-    implementation rootProject.ext.dependencies["tbs"]
+    debugImplementation rootProject.ext.dependencies["tbs"]
     debugImplementation rootProject.ext.dependencies["leakcanary_android"]
-    implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
-    implementation project(":dokit-pthread-hook")
 
-    implementation rootProject.ext.dependencies["epic"]
+    debugImplementation rootProject.ext.dependencies["epic"]
 }
 
 

@@ -32,7 +32,7 @@ public class WeexLogInfoDoKitView extends LogInfoDoKitView {
     public void initView() {
         super.initView();
 
-        LogTitleBar logTitleBar = findViewById(R.id.dokit_title_bar);
+        LogTitleBar logTitleBar = findViewById(com.didichuxing.doraemonkit.R.id.dokit_title_bar);
         logTitleBar.setListener(new LogTitleBar.OnTitleBarClickListener() {
             @Override
             public void onRightClick() {

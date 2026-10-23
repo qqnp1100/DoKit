@@ -1,7 +1,95 @@
-def PUBLISH_ARCHIVES_TYPE = rootProject.ext.publish_config["archives_type"]
+import groovy.json.JsonSlurper
 
-if (PUBLISH_ARCHIVES_TYPE == 0 || PUBLISH_ARCHIVES_TYPE == 1) {
-    apply from: '../upload_private.gradle'
-} else if (PUBLISH_ARCHIVES_TYPE == 2) {
-    apply from: '../upload_maven_central.gradle'
+// Use the component so api/runtime scopes and mapped project coordinates are
+// shared by the POM and Gradle Module Metadata.
+apply plugin: 'maven-publish'
+
+def publicationConfig = rootProject.ext.publish_config
+def moduleNames = new JsonSlurper().parse(rootProject.file('dokit_module.json'))
+def publishedArtifact = moduleNames[project.name]
+if (!publishedArtifact) {
+    throw new GradleException("Missing publication mapping for ${project.path} in dokit_module.json")
+}
+
+group = publicationConfig['group_id']
+version = publicationConfig['version']
+
+def localPublicationProperties = new Properties()
+def localPublicationFile = rootProject.file('local.properties')
+if (localPublicationFile.isFile()) {
+    localPublicationFile.withInputStream { localPublicationProperties.load(it) }
+}
+ext.dokitPublicationSetting = { String name ->
+    providers.gradleProperty(name)
+        .orElse(providers.environmentVariable(name))
+        .getOrElse(localPublicationProperties.getProperty(name, ''))
+        .trim()
+}
+
+android {
+    publishing {
+        singleVariant('release') {
+            withSourcesJar()
+        }
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+                groupId = publicationConfig['group_id']
+                artifactId = publishedArtifact
+                version = publicationConfig['version']
+                pom {
+                    name = publishedArtifact
+                    description = 'DoKit is an efficiency platform for the entire life cycle of general front-end product research and development.'
+                    url = 'https://github.com/didi/DoraemonKit'
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'OrangeLab'
+                            name = 'Orange Lab'
+                            email = 'orange-lab@didiglobal.com'
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:https://github.com/didi/DoraemonKit.git'
+                        developerConnection = 'scm:git:ssh://git@github.com/didi/DoraemonKit.git'
+                        url = 'https://github.com/didi/DoraemonKit'
+                    }
+                }
+            }
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = 'migration'
+            url = rootProject.layout.buildDirectory.dir('migration-repository')
+        }
+    }
+}
+
+def defaultTarget = [0: 'local', 1: 'private', 2: 'central'][publicationConfig['archives_type']]
+def publicationTarget = providers.gradleProperty('DOKIT_PUBLISH_TARGET').getOrElse(defaultTarget ?: 'local')
+switch (publicationTarget) {
+    case 'local':
+        break
+    case 'private':
+        apply from: rootProject.file('upload_private.gradle')
+        break
+    case 'central':
+        apply from: rootProject.file('upload_maven_central.gradle')
+        break
+    default:
+        throw new GradleException("Unknown DOKIT_PUBLISH_TARGET=${publicationTarget}; use local, private or central")
 }

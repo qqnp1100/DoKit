@@ -1,22 +1,16 @@
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-kapt'
+apply plugin: 'com.android.legacy-kapt'
 apply from: '../upload.gradle'
 
 def dokitVersion = rootProject.ext.publish_config["version"]
 
 android {
-    compileSdkVersion rootProject.ext.android["compileSdkVersion"]
+    namespace 'com.didichuxing.doraemonkit'
+    compileSdk rootProject.ext.android["compileSdkVersion"]
 
     defaultConfig {
-        minSdkVersion rootProject.ext.android["minSdkVersion_16"]
-        targetSdkVersion rootProject.ext.android["targetSdkVersion"]
-        versionCode rootProject.ext.android["versionCode"]
-        versionName rootProject.ext.android["versionName"]
+        minSdk rootProject.ext.android["minSdkVersion_16"]
 
-        lintOptions {
-            abortOnError false
-        }
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
@@ -25,22 +19,17 @@ android {
                 arguments '-DANDROID_STL=c++_static'
             }
         }
-        javaCompileOptions {
-            annotationProcessorOptions {
-                includeCompileClasspath true
-            }
-        }
     }
 
     buildTypes {
         debug {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField("String", "DOKIT_VERSION", "\"" + dokitVersion + "\"")
         }
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField("String", "DOKIT_VERSION", "\"" + dokitVersion + "\"")
         }
     }
@@ -50,20 +39,19 @@ android {
 //        }
 //    }
 
-//    compileOptions {
-//        sourceCompatibility JavaVersion.VERSION_1_8
-//        targetCompatibility JavaVersion.VERSION_1_8
-//    }
 
-    kotlinOptions {
-        jvmTarget = "1.8"
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    lint {
+        abortOnError false
+    }
 
-    /**
-     * 支持ViewBinding
-     */
+    // Public adapter classes reference the DataBinding APIs.
     buildFeatures {
+        buildConfig = true
 //        viewBinding = true
         dataBinding = true
     }
@@ -71,16 +59,21 @@ android {
 
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+    }
+}
+
+
 dependencies {
 //    implementation fileTree(include: ['*.jar'], dir: 'libs')
     //noinspection GradleCompatible
     testImplementation 'junit:junit:4.12'
+    testImplementation "com.squareup.okhttp3:mockwebserver:${rootProject.ext.android['okhttp_v4']}"
     androidTestImplementation 'junit:junit:4.12'
-    if (needKotlinV14()) {
-        implementation rootProject.ext.dependencies["kotlin_v14"]
-    } else {
-        implementation rootProject.ext.dependencies["kotlin_v13"]
-    }
+    androidTestImplementation 'androidx.test:runner:1.2.0'
+    implementation rootProject.ext.dependencies["kotlin"]
     implementation rootProject.ext.dependencies["lifecycle-comm"]
 
     implementation rootProject.ext.dependencies["constraintLayout"]
@@ -120,11 +113,7 @@ dependencies {
 
 
     //三大图片框架
-    if (needKotlinV14()) {
-        compileOnly rootProject.ext.dependencies["coil_v13"]
-    } else {
-        compileOnly rootProject.ext.dependencies["coil_v11"]
-    }
+    compileOnly rootProject.ext.dependencies["coil"]
     compileOnly rootProject.ext.dependencies["glide"]
     compileOnly rootProject.ext.dependencies["picasso"]
     compileOnly rootProject.ext.dependencies["fresco"]
@@ -173,10 +162,6 @@ configurations.all {
 //        }
     }
 }
-
-
-
-
 
 
 

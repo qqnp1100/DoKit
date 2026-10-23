@@ -1,0 +1,51 @@
+import groovy.json.JsonSlurper
+
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'dokit-full-runtime-consumer'
+
+def legacyArtifacts = new JsonSlurper().parse(file('legacy-artifacts.json'))
+def migrationMetadata = providers.gradleProperty('migrationMetadata').getOrElse('module')
+if (!(migrationMetadata in ['module', 'pom'])) {
+    throw new GradleException('migrationMetadata must be module or pom')
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        // This standalone build resolves published files, never source projects
+        // or an included-build dependency substitution.
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = 'migration'
+                    url = uri(providers.gradleProperty('migrationRepository').get())
+                    if (migrationMetadata == 'pom') {
+                        metadataSources {
+                            mavenPom()
+                            ignoreGradleMetadataRedirection()
+                        }
+                    }
+                }
+            }
+            filter { includeGroup('com.didichuxing.doraemonkit') }
+        }
+        google()
+        mavenCentral()
+        maven {
+            name = 'dokitHistoricalArtifacts'
+            url = uri(legacyArtifacts.repository)
+            metadataSources { mavenPom() }
+            content {
+                legacyArtifacts.artifacts.each { artifact ->
+                    includeVersion(artifact.group, artifact.module, artifact.version)
+                }
+            }
+        }
+    }
+}

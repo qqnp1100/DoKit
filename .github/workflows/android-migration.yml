@@ -1,0 +1,53 @@
+name: Android target migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Last migration phase to validate
+        type: choice
+        default: instrumentation
+        options: [configuration, modules, instrumentation, cache]
+  pull_request:
+    paths: ['Android/**', '.github/workflows/android-migration.yml']
+  push:
+    branches: [master]
+    paths: ['Android/**', '.github/workflows/android-migration.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  target-toolchain:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['17', '21']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK required by AGP binding artifacts
+        run: sdkmanager 'platforms;android-34' 'build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Validate Gradle 9.8.2, AGP 9.4.1 and Kotlin 2.4.21 in stages
+        env:
+          MIGRATION_PHASE: ${{ inputs.phase || 'instrumentation' }}
+        run: bash Android/scripts/verify-migration.sh
+      - name: Upload migration reports and publication metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-migration-jdk-${{ matrix.java }}
+          if-no-files-found: ignore
+          path: |
+            Android/build/migration-reports/
+            Android/**/build/publications/
+            Android/dokit-plugin/build/reports/tests/
+            Android/dokit-plugin/build/reports/migration-host/
+            Android/**/build/test-results/
+            Android/build/migration-repository/

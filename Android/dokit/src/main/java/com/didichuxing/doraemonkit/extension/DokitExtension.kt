@@ -187,7 +187,7 @@ fun RequestBody?.toMap(): MutableMap<String, String> {
     this.writeTo(buffer)
     val strBody = EncodeUtils.urlDecode(buffer.readUtf8())
     strBody?.let {
-        val contentType = this.contentType().toString().toLowerCase(Locale.ROOT)
+        val contentType = this.contentType().toString().lowercase(Locale.ROOT)
         when {
             contentType.contains(DokitDbManager.MEDIA_TYPE_FORM) -> {
                 return strBody.toMap()

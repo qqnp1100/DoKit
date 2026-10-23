@@ -1,29 +1,19 @@
-def runType = rootProject.ext.publish_config["run_type"]
-if (runType == 0) {
-    // 引用插件
-    apply plugin: 'com.didi.dokit.debug'
-    // 这里引用正常库
-    dependencies {
-        //外部平台依赖
-        debugImplementation project(":dokit")
-        debugImplementation project(":dokit-mc")
-        debugImplementation project(":dokit-ft")
-//        debugImplementation project(":dokit-weex")
-//        debugImplementation project(":dokit-rpc")
-//        debugImplementation project(":dokit-rpc-mc")
-        debugImplementation project(":dokit-gps-mock")
-        releaseImplementation project(":dokit-no-op")
+// The plugin is resolved by the included build through app's plugins block.
+def runType = rootProject.ext.publish_config['run_type']
+def modules = new groovy.json.JsonSlurper().parse(rootProject.file('dokit_module.json'))
+def debugModules = ['dokit', 'dokit-mc', 'dokit-ft', 'dokit-gps-mock',
+                    'dokit-autotest', 'dokit-test', 'dokit-pthread-hook']
+dependencies {
+    debugModules.each { module ->
+        if (runType == 0) {
+            add('debugImplementation', project(":${module}"))
+        } else {
+            add('debugImplementation', "${rootProject.group}:${modules[module]}:${rootProject.version}")
+        }
     }
-} else if (runType == 1) {
-    apply plugin: 'com.didi.dokit'
-    // 引用no-op的库
-    dependencies {
-        //新版线上包
-        debugImplementation "io.github.didi.dokit:dokitx:${rootProject.ext.publish_config["version"]}"
-        debugImplementation "io.github.didi.dokit:dokitx-ft:${rootProject.ext.publish_config["version"]}"
-        debugImplementation "io.github.didi.dokit:dokitx-mc:${rootProject.ext.publish_config["version"]}"
-        debugImplementation "io.github.didi.dokit:dokitx-weex:${rootProject.ext.publish_config["version"]}"
-        debugImplementation "io.github.didi.dokit:dokit-gps-mock:${rootProject.ext.publish_config["version"]}"
-        releaseImplementation "io.github.didi.dokit:dokitx-no-op:${rootProject.ext.publish_config["version"]}"
+    if (runType == 0) {
+        releaseImplementation project(':dokit-no-op')
+    } else {
+        releaseImplementation "${rootProject.group}:${modules['dokit-no-op']}:${rootProject.version}"
     }
 }

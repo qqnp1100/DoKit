@@ -1,12 +1,13 @@
 package com.didichuxing.doraemonkit.plugin.transform.classtransform
 
+import com.didichuxing.doraemonkit.plugin.DoKitState
 import com.didichuxing.doraemonkit.plugin.extension.DoKitExtension
-import com.didichuxing.doraemonkit.plugin.lastPath
 import com.didichuxing.doraemonkit.plugin.println
-import com.didiglobal.booster.kotlinx.asIterable
-import com.didiglobal.booster.transform.TransformContext
-import com.didiglobal.booster.transform.asm.className
-import org.gradle.api.Project
+
+import com.didichuxing.doraemonkit.plugin.asIterable
+import com.didichuxing.doraemonkit.plugin.TransformContext
+import com.didichuxing.doraemonkit.plugin.className
+
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.*
 
@@ -22,10 +23,11 @@ import org.objectweb.asm.tree.*
  * @Description 用一句话说明文件功能
  */
 
-class Okhttp3ClassTransformer : AbsClassTransformer() {
+class Okhttp3ClassTransformer(state: DoKitState) : AbsClassTransformer(state) {
 
-    override fun transform(project: Project, dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
+    override fun transform(dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
         val className = klass.className
+        if (klass.methods.any { method -> method.instructions.filterIsInstance<MethodInsnNode>().any { it.owner.startsWith("com/didichuxing/doraemonkit/aop/OkHttpHook") } }) return klass
 
         if (dokit.networkEnable && dokit.network.okHttp) {
             //hook OkhttpClient
@@ -33,7 +35,7 @@ class Okhttp3ClassTransformer : AbsClassTransformer() {
                 klass.methods?.find {
                     it.name == "<init>" && it.desc != "()V"
                 }.let {
-                    "${context.projectDir.lastPath()}->hook OkhttpClient  succeed: ${className}_${it?.name}_${it?.desc}".println()
+                    state.log("${context.variantName}->hook OkhttpClient  succeed: ${className}_${it?.name}_${it?.desc}")
                     it?.instructions
                         ?.iterator()
                         ?.asIterable()

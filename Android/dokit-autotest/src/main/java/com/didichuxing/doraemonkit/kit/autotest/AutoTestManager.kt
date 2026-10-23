@@ -279,6 +279,7 @@ object AutoTestManager {
                 }
             }
 
+            else -> Unit
         }
         return false
     }
@@ -305,6 +306,7 @@ object AutoTestManager {
                     }
                 }
             }
+            else -> Unit
         }
         return 1000
     }

@@ -29,6 +29,9 @@ object UploadFileAction {
             when (part) {
                 is PartData.FileItem -> filePart = part
                 is PartData.FormItem -> formPart = part
+                // This endpoint accepts named files and form values. Release
+                // unsupported binary parts rather than retaining their input.
+                is PartData.BinaryItem -> part.dispose()
             }
         }
 
@@ -44,8 +47,8 @@ object UploadFileAction {
                     inputStream?.copyTo(outputStream)
                 }
             }
-            filePart?.dispose
-            formPart?.dispose
+            filePart?.dispose()
+            formPart?.dispose()
 
             if (FileUtils.isFileExists(file)) {
                 response["code"] = 200

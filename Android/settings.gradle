@@ -1,3 +1,15 @@
+pluginManagement {
+    includeBuild('dokit-plugin')
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    plugins {
+        id 'com.android.legacy-kapt' version '9.4.1'
+    }
+}
+
 rootProject.name = "Dokit-Android"
 include ':app'
 include ':dokit-util'
@@ -9,7 +21,6 @@ include ':dokit-okhttp-v4'
 include ':dokit-okhttp-api'
 include ':dokit-weex'
 include ':dokit-no-op'
-include ':dokit-plugin'
 include ':dokit-pthread-hook'
 include ':dokit-autotest'
 include ':dokit-test'

@@ -1,46 +1,49 @@
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
 apply from: '../upload.gradle'
 
 android {
-    compileSdkVersion rootProject.ext.android["compileSdkVersion"]
+    namespace 'com.didichuxing.doraemonkit.okhttp_v3'
+    compileSdk rootProject.ext.android["compileSdkVersion"]
 
     defaultConfig {
-        minSdkVersion rootProject.ext.android["minSdkVersion_16"]
-        targetSdkVersion rootProject.ext.android["targetSdkVersion"]
-        versionCode rootProject.ext.android["versionCode"]
-        versionName rootProject.ext.android["versionName"]
+        minSdk rootProject.ext.android["minSdkVersion_16"]
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        javaCompileOptions { annotationProcessorOptions { includeCompileClasspath = true } }
+
     }
 
     buildTypes {
         debug {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
-    lintOptions {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lint {
         abortOnError false
     }
 
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+    }
+}
 
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    if (needKotlinV14()) {
-        compileOnly rootProject.ext.dependencies["kotlin_v14"]
-    } else {
-        compileOnly rootProject.ext.dependencies["kotlin_v13"]
-    }
+    compileOnly rootProject.ext.dependencies["kotlin"]
     //implementation rootProject.ext.dependencies["appcompat"]
     //compileOnly rootProject.ext.dependencies["okio"]
     api rootProject.ext.dependencies["okhttp_v3"]

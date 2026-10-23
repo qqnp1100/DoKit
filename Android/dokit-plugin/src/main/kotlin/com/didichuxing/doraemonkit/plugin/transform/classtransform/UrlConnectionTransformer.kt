@@ -1,12 +1,13 @@
 package com.didichuxing.doraemonkit.plugin.transform.classtransform
 
+import com.didichuxing.doraemonkit.plugin.DoKitState
 import com.didichuxing.doraemonkit.plugin.extension.DoKitExtension
-import com.didichuxing.doraemonkit.plugin.lastPath
 import com.didichuxing.doraemonkit.plugin.println
-import com.didiglobal.booster.kotlinx.asIterable
-import com.didiglobal.booster.transform.TransformContext
-import com.didiglobal.booster.transform.asm.className
-import org.gradle.api.Project
+
+import com.didichuxing.doraemonkit.plugin.asIterable
+import com.didichuxing.doraemonkit.plugin.TransformContext
+import com.didichuxing.doraemonkit.plugin.className
+
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
@@ -20,13 +21,13 @@ import org.objectweb.asm.tree.MethodInsnNode
  * 修订历史：
  * ================================================
  */
-class UrlConnectionTransformer : AbsClassTransformer() {
+class UrlConnectionTransformer(state: DoKitState) : AbsClassTransformer(state) {
 
     private val SHADOW_URL = "com/didichuxing/doraemonkit/aop/urlconnection/HttpUrlConnectionProxyUtil"
 
     private val DESC = "(Ljava/net/URLConnection;)Ljava/net/URLConnection;"
 
-    override fun transform(project: Project, dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
+    override fun transform(dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
         val className = klass.className
 
         if (dokit.networkEnable && dokit.network.urlConnect) {
@@ -37,9 +38,9 @@ class UrlConnectionTransformer : AbsClassTransformer() {
                         it.opcode == Opcodes.INVOKEVIRTUAL &&
                             it.owner == "java/net/URL" &&
                             it.name == "openConnection" &&
-                            it.desc == "()Ljava/net/URLConnection;"
+                            it.desc == "()Ljava/net/URLConnection;" && (it.next as? MethodInsnNode)?.owner != SHADOW_URL
                     }?.forEach {
-                        "${context.projectDir.lastPath()}->hook URL#openConnection method  succeed in : ${className}_${method.name}_${method.desc}".println()
+                        state.log("${context.variantName}->hook URL#openConnection method  succeed in : ${className}_${method.name}_${method.desc}")
                         method.instructions.insert(
                             it,
                             MethodInsnNode(Opcodes.INVOKESTATIC, SHADOW_URL, "proxy", DESC, false)

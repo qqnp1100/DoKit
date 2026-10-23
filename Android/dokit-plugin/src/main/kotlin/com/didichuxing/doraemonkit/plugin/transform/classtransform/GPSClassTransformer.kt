@@ -1,13 +1,13 @@
 package com.didichuxing.doraemonkit.plugin.transform.classtransform
 
-import com.didichuxing.doraemonkit.plugin.DoKitExtUtil
+import com.didichuxing.doraemonkit.plugin.DoKitState
 import com.didichuxing.doraemonkit.plugin.extension.DoKitExtension
-import com.didichuxing.doraemonkit.plugin.lastPath
 import com.didichuxing.doraemonkit.plugin.println
-import com.didiglobal.booster.kotlinx.asIterable
-import com.didiglobal.booster.transform.TransformContext
-import com.didiglobal.booster.transform.asm.className
-import org.gradle.api.Project
+
+import com.didichuxing.doraemonkit.plugin.asIterable
+import com.didichuxing.doraemonkit.plugin.TransformContext
+import com.didichuxing.doraemonkit.plugin.className
+
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
@@ -24,13 +24,13 @@ import org.objectweb.asm.tree.MethodInsnNode
  * @Description 系统定位hooks
  */
 
-class GPSClassTransformer : AbsClassTransformer() {
+class GPSClassTransformer(state: DoKitState) : AbsClassTransformer(state) {
 
-    override fun transform(project: Project, dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
+    override fun transform(dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
         val className = klass.className
 
         //gps字节码操作
-        if (dokit.gpsEnable && dokit.gps.local && DoKitExtUtil.DOKIT_GPS_MOCK_INCLUDE) {
+        if (dokit.gpsEnable && dokit.gps.local && state.DOKIT_GPS_MOCK_INCLUDE) {
             //系统 gpsStatus hook
             klass.methods.forEach { method ->
                 method.instructions?.iterator()?.asIterable()
@@ -38,9 +38,9 @@ class GPSClassTransformer : AbsClassTransformer() {
                         it.opcode == Opcodes.INVOKEVIRTUAL &&
                             it.owner == "android/location/LocationManager" &&
                             it.name == "getGpsStatus" &&
-                            it.desc == "(Landroid/location/GpsStatus;)Landroid/location/GpsStatus;"
+                            it.desc == "(Landroid/location/GpsStatus;)Landroid/location/GpsStatus;" && (it.next as? MethodInsnNode)?.owner != "com/didichuxing/doraemonkit/gps_mock/location/GpsStatusUtil"
                     }?.forEach {
-                        "${context.projectDir.lastPath()}->hook LocationManager#getGpsStatus method  succeed in : ${className}_${method.name}_${method.desc}".println()
+                        state.log("${context.variantName}->hook LocationManager#getGpsStatus method  succeed in : ${className}_${method.name}_${method.desc}")
                         method.instructions.insert(
                             it,
                             MethodInsnNode(

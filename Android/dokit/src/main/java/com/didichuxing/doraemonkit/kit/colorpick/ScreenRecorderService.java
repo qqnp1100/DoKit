@@ -52,12 +52,9 @@ public class ScreenRecorderService extends Service {
     private void createNotificationChannel() {
         Notification.Builder builder = new Notification.Builder(this.getApplicationContext()); //获取一个Notification构造器
         Intent nfIntent = new Intent(this, UniversalActivity.class); //点击后跳转的界面，可以设置跳转数据
-        PendingIntent pendingIntent;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            pendingIntent = PendingIntent.getActivity(this, 0, nfIntent, 0 | PendingIntent.FLAG_IMMUTABLE);
-        } else {
-            pendingIntent = PendingIntent.getActivity(this, 0, nfIntent, 0);
-        }
+        int pendingIntentFlags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                ? PendingIntent.FLAG_IMMUTABLE : 0;
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, nfIntent, pendingIntentFlags);
 
         builder.setContentIntent(pendingIntent) // 设置PendingIntent
                 .setLargeIcon(BitmapFactory.decodeResource(this.getResources(), R.mipmap.dk_doraemon)) // 设置下拉列表中的图标(大图标)

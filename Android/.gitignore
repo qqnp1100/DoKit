@@ -7,6 +7,8 @@ local.properties
 .DS_Store
 /build
 /*/build
+**/build/
+.kotlin/
 /captures
 .externalNativeBuild
 .idea/

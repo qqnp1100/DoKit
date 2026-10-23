@@ -8,6 +8,7 @@ import android.widget.TextView
 import com.didichuxing.doraemonkit.DoKit
 import com.didichuxing.doraemonkit.kit.core.DoKitManager
 import com.didichuxing.doraemonkit.ft.R
+import com.didichuxing.doraemonkit.R as CoreR
 import com.didichuxing.doraemonkit.kit.core.BaseFragment
 import com.didichuxing.doraemonkit.kit.webview.CommWebViewFragment
 import com.didichuxing.doraemonkit.util.DoKitCommUtil
@@ -35,7 +36,7 @@ class FileTransferFragment : BaseFragment() {
             "${DoKitManager.IP_ADDRESS_BY_WIFI}:${DoKitManager.FILE_MANAGER_HTTP_PORT}"
         findViewById<HomeTitleBar>(R.id.title_bar).setListener { finish() }
         findViewById<TextView>(R.id.tv_tip_top).apply {
-            text = Html.fromHtml(DoKitCommUtil.getString(R.string.dk_file_manager_tip_top))
+            text = Html.fromHtml(DoKitCommUtil.getString(CoreR.string.dk_file_manager_tip_top))
             setOnClickListener {
                 DoKit.launchFullScreen(
                     CommWebViewFragment::class,

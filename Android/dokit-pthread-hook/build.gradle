@@ -1,20 +1,13 @@
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-kapt'
+apply plugin: 'com.android.legacy-kapt'
 apply from: '../upload.gradle'
 
 android {
-    compileSdkVersion rootProject.ext.android["compileSdkVersion"]
+    namespace 'com.kronos.dokit.pthread'
+    compileSdk rootProject.ext.android["compileSdkVersion"]
 
     defaultConfig {
-        minSdkVersion rootProject.ext.android["minSdkVersion_21"]
-        targetSdkVersion rootProject.ext.android["targetSdkVersion"]
-        versionCode rootProject.ext.android["versionCode"]
-        versionName rootProject.ext.android["versionName"]
-
-        lintOptions {
-            abortOnError false
-        }
+        minSdk rootProject.ext.android["minSdkVersion_21"]
     }
 
     buildTypes {
@@ -28,7 +21,7 @@ android {
         }
     }
 
-    lintOptions {
+    lint {
         abortOnError false
     }
 
@@ -37,9 +30,6 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
     /**
      * 支持ViewBinding
      */
@@ -47,6 +37,13 @@ android {
         viewBinding = true
     }
 
+}
+
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+    }
 }
 
 
@@ -59,11 +56,7 @@ dependencies {
     //此处需要使用api的形式 向上暴露内部api
     implementation project(':dokit')
 
-    if (needKotlinV14()) {
-        implementation rootProject.ext.dependencies["kotlin_v14"]
-    } else {
-        implementation rootProject.ext.dependencies["kotlin_v13"]
-    }
+    implementation rootProject.ext.dependencies["kotlin"]
     def matrixVersion = "2.0.2"
     implementation "com.tencent.matrix:matrix-hooks:$matrixVersion"
     implementation "com.tencent.matrix:matrix-fd:$matrixVersion"

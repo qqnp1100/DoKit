@@ -17,7 +17,8 @@ import com.didichuxing.doraemonkit.util.LogHelper
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.runBlocking
 import okhttp3.*
-import okio.ByteString
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.ByteString.Companion.encodeUtf8
 import java.net.URLDecoder
 import java.util.*
 
@@ -44,9 +45,9 @@ class DoKitMockInterceptor : AbsDoKitInterceptor() {
             if (DoKitTestManager.isClose()) {
                 return response
             }
-            val url = request.url()
-            val host: String = url.host()
-            val scheme = url.scheme()
+            val url = request.url
+            val host: String = url.host
+            val scheme = url.scheme
             val contentType = response.header("Content-Type") ?: response.header("content-type")
             //如果是图片则不进行拦截
             if (InterceptorUtil.isImg(contentType)) {
@@ -67,16 +68,16 @@ class DoKitMockInterceptor : AbsDoKitInterceptor() {
             }
 
             //不包含query字段
-            val method = request.method()
-            val path = URLDecoder.decode(url.encodedPath(), "utf-8")
-            val fragment = url.fragment() ?: "null"
+            val method = request.method
+            val path = URLDecoder.decode(url.encodedPath, "utf-8")
+            val fragment = url.fragment ?: "null"
             val queryMap = createQueryMap(url)
 
             val strQuery = GsonUtils.toJson(queryMap)
-            val requestContentType = if (request.body() == null) {
+            val requestContentType = if (request.body == null) {
                 "null"
             } else {
-                request.body()?.contentType().toString().toLowerCase(Locale.ROOT)
+                request.body?.contentType().toString().lowercase(Locale.ROOT)
             }
 
             val requestBodyMap = createRequestBodyMap(request)
@@ -87,7 +88,7 @@ class DoKitMockInterceptor : AbsDoKitInterceptor() {
 //            LogHelper.i(TAG, "========业务接口 End url:$url ========")
             val k = "method=$method&path=$path&fragment=$fragment&query=$strQuery&contentType=$requestContentType&requestBody=$strRequestBody"
             LogHelper.i(TAG, "originKey===>$k")
-            val key = ByteString.encodeUtf8(k).md5().hex()
+            val key = k.encodeUtf8().md5().hex()
             when (DoKitTestManager.getTestMode()) {
 //                TestMode.RECORDING -> {
 //                    //数据采集
@@ -129,16 +130,13 @@ class DoKitMockInterceptor : AbsDoKitInterceptor() {
                                 LogHelper.i(TAG, "MCMOCKLOG OK key=$key,code=${result.code} originKey===>$k data=${result.data}")
                                 if (result.code == HttpMockServer.RESPONSE_OK && result.data != null) {
                                     val responseBody =
-                                        ResponseBody.create(
-                                            response.body()?.contentType(),
-                                            result.data!!.responseBody
-                                        )
+                                        result.data!!.responseBody.toResponseBody(response.body?.contentType())
                                     return@runBlocking response.newBuilder()
-                                        .code(response.code())
+                                        .code(response.code)
                                         .request(request)
-                                        .message(response.message())
-                                        .protocol(response.protocol())
-                                        .headers(response.headers())
+                                        .message(response.message)
+                                        .protocol(response.protocol)
+                                        .headers(response.headers)
                                         .body(responseBody)
                                         .build()
                                 } else {
@@ -166,7 +164,7 @@ class DoKitMockInterceptor : AbsDoKitInterceptor() {
 
 
     private fun createQueryMap(url: HttpUrl): Map<String, String> {
-        val maps = url.query()?.toMap()
+        val maps = url.query?.toMap()
         HttpMockServer.mExcludeKey.forEach {
             maps?.remove(it)
         }
@@ -175,7 +173,7 @@ class DoKitMockInterceptor : AbsDoKitInterceptor() {
 
 
     private fun createRequestBodyMap(request: Request): Map<String, String> {
-        val maps = request.body().toMap()
+        val maps = request.body.toMap()
         HttpMockServer.mExcludeKey.forEach {
             maps.remove(it)
         }

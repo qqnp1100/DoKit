@@ -1,0 +1,186 @@
+{
+  "repository": "https://maven.aliyun.com/repository/jcenter",
+  "checkedOn": "2026-10-22",
+  "artifacts": [
+    {
+      "group": "com.android.volley",
+      "module": "volley",
+      "version": "1.1.1",
+      "pomSha256": "59dfa52484e1ff4338be8e7ef67ce674ef974635d1d7b3b38442505f46e092da",
+      "dependencies": [],
+      "artifactExtension": "aar",
+      "artifactSha256": "f2ed1f4dcf40de5489218964b43d9ce87e5c6d00dba6dbce081b8eb2768c24d2",
+      "artifactBytes": 99090,
+      "matchesExistingCachedArtifact": true
+    },
+    {
+      "group": "com.blankj",
+      "module": "utilcodex",
+      "version": "1.29.0",
+      "pomSha256": "c2cd8905f8191cad050987245fe79926da4094dc41c9958c81c54605cdd57396",
+      "dependencies": [
+        "org.jetbrains.kotlin:kotlin-android-extensions-runtime:1.3.50",
+        "com.google.code.gson:gson:2.8.5"
+      ],
+      "artifactExtension": "aar",
+      "artifactSha256": "19856bdbc0c5382833fe0452d2d618980fe5fabe1b8512c9752857fb37a54712",
+      "artifactBytes": 466759,
+      "matchesExistingCachedArtifact": false
+    },
+    {
+      "group": "com.github.CymChad",
+      "module": "BaseRecyclerViewAdapterHelper",
+      "version": "3.0.4",
+      "pomSha256": "494dc15d2adc77a19b41f7c17036f4c1c61a16d61b03945de0dfcdc3683c425d",
+      "dependencies": [
+        "androidx.recyclerview:recyclerview:1.1.0",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.3.72"
+      ],
+      "artifactExtension": "aar",
+      "artifactSha256": "c80609a5c51c5d198de7e5fa62f67e0c46e3bfd7d304ed2978e6e83e82d3c8bb",
+      "artifactBytes": 171438,
+      "matchesExistingCachedArtifact": false
+    },
+    {
+      "group": "com.github.ybq",
+      "module": "Android-SpinKit",
+      "version": "1.4.0",
+      "pomSha256": "0dd4df98f164fa7e28b9f633ef2f18104d908827c7f72a2384db849b2e730165",
+      "dependencies": [],
+      "artifactExtension": "aar",
+      "artifactSha256": "3d1bb6b05feb0c62f92d174b0d32a611da238a22a929fe1db2b0f7c4fb58ede2",
+      "artifactBytes": 54681,
+      "matchesExistingCachedArtifact": true
+    },
+    {
+      "group": "com.google.android",
+      "module": "flexbox",
+      "version": "1.0.0",
+      "pomSha256": "40c4c2d1012f55c2cde33c3ffa652871b1e068cb645fb18c396a672ada449d96",
+      "dependencies": [],
+      "artifactExtension": "aar",
+      "artifactSha256": "56fcbd8c5f962527c75bc7c97128e05172756ef6c1b4ed8966dd7ea674c9dd7c",
+      "artifactBytes": 75567,
+      "matchesExistingCachedArtifact": false
+    },
+    {
+      "group": "com.lzy.net",
+      "module": "okgo",
+      "version": "3.0.4",
+      "pomSha256": "4468b7abe4fe17283782cca7b9953035dc2cf7dadec6f54432bc4ba25a54c139",
+      "dependencies": [
+        "com.squareup.okhttp3:okhttp:3.8.1"
+      ],
+      "artifactExtension": "aar",
+      "artifactSha256": "b5621c93da37adb7d7c7cb90c2c08bcb1fa29fb4b37bea5394177b65cfca4d1d",
+      "artifactBytes": 134212,
+      "matchesExistingCachedArtifact": false
+    },
+    {
+      "group": "com.taobao.android",
+      "module": "weex_inspector",
+      "version": "0.24.2.11",
+      "pomSha256": "c07707c32ac1988d176d39dcd9feb442f370be134d7175501b58b067ef8912d4",
+      "dependencies": [
+        "com.android.support:appcompat-v7:23.1.1"
+      ],
+      "artifactExtension": "aar",
+      "artifactSha256": "596445c3e975a0a8ea0e00f1f2807123bc0ef2e482b0113ee6112b9ccfa76d54",
+      "artifactBytes": 460064,
+      "matchesExistingCachedArtifact": false
+    },
+    {
+      "group": "com.tencent.tbs.tbssdk",
+      "module": "sdk",
+      "version": "43903",
+      "pomSha256": "a01b6983d2d754dd46fca8c47719730b33fa0147d0e3c8bbf2739579ce699408",
+      "dependencies": [],
+      "artifactExtension": "aar",
+      "artifactSha256": "fd921b517d74e7db088701f1cd0f99715d26d714a3e04327d031cc9ad910e4aa",
+      "artifactBytes": 525129,
+      "matchesExistingCachedArtifact": false
+    },
+    {
+      "group": "jp.wasabeef",
+      "module": "fresco-processors",
+      "version": "2.1.0",
+      "pomSha256": "8f6b9fbac8b263ec0b06465fa4d53449a7c0141c37c05283179fe5bfc3aa8482",
+      "dependencies": [
+        "com.facebook.fresco:fresco:1.1.0"
+      ],
+      "artifactExtension": "aar",
+      "artifactSha256": "aebcd94966a82b82e853e802e4bc8240fab90c7d34243875149d822db563c23f",
+      "artifactBytes": 21968,
+      "matchesExistingCachedArtifact": false
+    },
+    {
+      "group": "me.weishu",
+      "module": "epic",
+      "version": "0.11.1",
+      "pomSha256": "c72b3571ac171a1c79fdd05feb62207630e7a9f5b90b9e53727982b29a09baf2",
+      "dependencies": [
+        "me.weishu.exposed:exposed-xposedapi:0.4.5",
+        "me.weishu:free_reflection:3.0.1"
+      ],
+      "artifactExtension": "aar",
+      "artifactSha256": "b64af55fb3348a75a3d68746a40d753c161f570e1cbb58a3f57731bd1f098ee8",
+      "artifactBytes": 109983,
+      "matchesExistingCachedArtifact": true
+    },
+    {
+      "group": "org.apache.weex",
+      "module": "sdk",
+      "version": "0.28.0",
+      "pomSha256": "47d7ea66c525bedf447065ab14689b68f1c9a5f879cd24354a7a3df4174102f4",
+      "dependencies": [],
+      "artifactExtension": "aar",
+      "artifactSha256": "757cf052e0d58ba34ec7e873c31f97cea04c1953ad8e83960d3e5aa9e31857e1",
+      "artifactBytes": 3718771,
+      "matchesExistingCachedArtifact": false
+    },
+    {
+      "group": "pub.devrel",
+      "module": "easypermissions",
+      "version": "2.0.1",
+      "pomSha256": "9db6de995e4ca490991edeb66d8cca98918b109fb3179527c17361e38667a3ef",
+      "dependencies": [
+        "com.android.support:appcompat-v7:28.0.0",
+        "com.android.support:support-compat:28.0.0",
+        "com.android.support:support-fragment:28.0.0"
+      ],
+      "artifactExtension": "aar",
+      "artifactSha256": "67f6864aec610ddb2a0134f18df7f7eda5bb1f879d9d05c602212e9d354e9af3",
+      "artifactBytes": 44976,
+      "matchesExistingCachedArtifact": false
+    },
+    {
+      "group": "me.weishu.exposed",
+      "module": "exposed-xposedapi",
+      "version": "0.4.5",
+      "pomSha256": "5b3159890754514caabf659a9e831ca1588c9806ed4d5c3911f15a2b5a1f42df",
+      "artifactExtension": "aar",
+      "artifactSha256": "3e626faef232cea7e93aca858e1c9792ac54cc3954566f8e5a4a8432970e9ecb",
+      "artifactBytes": 202612,
+      "matchesExistingCachedArtifact": true,
+      "dependencies": []
+    },
+    {
+      "group": "me.weishu",
+      "module": "free_reflection",
+      "version": "3.0.1",
+      "pomSha256": "5a5a2c7b7117d37971d1e91f1f51e493487a683859290f9675cac2fb45845331",
+      "artifactExtension": "aar",
+      "artifactSha256": "f8950c4abca0e5195bd0f2b4809644355d97658309418f68e4507abf8c5ab98a",
+      "artifactBytes": 6506,
+      "matchesExistingCachedArtifact": true,
+      "dependencies": []
+    }
+  ],
+  "purpose": "Exact historical runtime versions absent from Google Maven and Maven Central; no blanket mirror or dependency upgrades.",
+  "upstreamEvidence": {
+    "com.github.CymChad:BaseRecyclerViewAdapterHelper:3.0.4": [
+      "https://github.com/CymChad/BaseRecyclerViewAdapterHelper/blob/3.0.4/build.gradle",
+      "https://github.com/CymChad/BaseRecyclerViewAdapterHelper/blob/3.0.4/library/build.gradle"
+    ]
+  }
+}

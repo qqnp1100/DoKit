@@ -2,6 +2,7 @@ package com.didichuxing.doraemonkit.kit.connect.parser
 
 import com.didichuxing.doraemonkit.kit.connect.data.BytePackage
 import com.didichuxing.doraemonkit.kit.connect.data.TextPackage
+import okio.Buffer
 import okio.ByteString
 import java.nio.ByteBuffer
 
@@ -58,6 +59,6 @@ object ByteParser {
         buffer.put(headBytes)
         buffer.put(dataBytes)
         buffer.rewind()
-        return ByteString.of(buffer)
+        return Buffer().write(buffer.array()).readByteString()
     }
 }

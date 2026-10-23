@@ -8,6 +8,8 @@ import com.didichuxing.doraemonkit.util.LogHelper
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.runBlocking
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.ResponseBody.Companion.toResponseBody
 import java.io.IOException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -66,10 +68,7 @@ class DoKitProxyMockInterceptor : AbsDoKitInterceptor() {
                         }
 
                         val responseBody =
-                            ResponseBody.create(
-                                MediaType.parse(proxyResponse.responseContentType),
-                                proxyResponse.responseBody
-                            )
+                            proxyResponse.responseBody.toResponseBody(proxyResponse.responseContentType.toMediaTypeOrNull())
                         return@runBlocking Response.Builder()
                             .code(proxyResponse.responseCode)
                             .request(request)

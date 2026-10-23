@@ -1,12 +1,11 @@
 package com.didichuxing.doraemonkit.plugin.transform.classtransform
 
-import com.didichuxing.doraemonkit.plugin.DoKitExtUtil
+import com.didichuxing.doraemonkit.plugin.DoKitState
 import com.didichuxing.doraemonkit.plugin.extension.DoKitExtension
-import com.didichuxing.doraemonkit.plugin.lastPath
 import com.didichuxing.doraemonkit.plugin.println
-import com.didiglobal.booster.transform.TransformContext
-import com.didiglobal.booster.transform.asm.className
-import org.gradle.api.Project
+import com.didichuxing.doraemonkit.plugin.TransformContext
+import com.didichuxing.doraemonkit.plugin.className
+
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.*
 
@@ -22,12 +21,13 @@ import org.objectweb.asm.tree.*
  * @Description 百度地图 hooks
  */
 
-class GPSBDClassTransformer : AbsClassTransformer() {
+class GPSBDClassTransformer(state: DoKitState) : AbsClassTransformer(state) {
 
-    override fun transform(project: Project, dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
+    override fun transform(dokit: DoKitExtension, context: TransformContext, klass: ClassNode): ClassNode {
         val className = klass.className
+        if (klass.methods.any { method -> method.instructions.filterIsInstance<MethodInsnNode>().any { it.owner.startsWith("com/didichuxing/doraemonkit/gps_mock/map/") } }) return klass
 
-        if (dokit.gpsEnable && dokit.gps.baidu && DoKitExtUtil.DOKIT_GPS_MOCK_INCLUDE) {
+        if (dokit.gpsEnable && dokit.gps.baidu && state.DOKIT_GPS_MOCK_INCLUDE) {
             //插入百度地图相关字节码
             if (className == "com.baidu.location.LocationClient") {
                 //拦截注册监听器
@@ -35,7 +35,7 @@ class GPSBDClassTransformer : AbsClassTransformer() {
                     it.name == "registerLocationListener"
                         && (it.desc == "(Lcom/baidu/location/BDLocationListener;)V" || it.desc == "(Lcom/baidu/location/BDAbstractLocationListener;)V")
                 }?.forEach { methodNode ->
-                    "${context.projectDir.lastPath()}->hook baidu map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}".println()
+                    state.log("${context.variantName}->hook baidu map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}")
                     if (methodNode.desc == "(Lcom/baidu/location/BDLocationListener;)V") {
                         methodNode?.instructions?.insert(createBDLocationListenerInsnList())
                     } else if (methodNode.desc == "(Lcom/baidu/location/BDAbstractLocationListener;)V") {
@@ -46,7 +46,7 @@ class GPSBDClassTransformer : AbsClassTransformer() {
                 klass.methods?.find {
                     it.name == "unRegisterLocationListener" && it.desc == "(Lcom/baidu/location/BDLocationListener;)V"
                 }.let { methodNode ->
-                    "${context.projectDir.lastPath()}->hook baidu map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}".println()
+                    state.log("${context.variantName}->hook baidu map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}")
                     methodNode?.instructions?.insert(
                         createBDLocationUnRegisterInsnList()
                     )
@@ -55,7 +55,7 @@ class GPSBDClassTransformer : AbsClassTransformer() {
                 klass.methods?.find {
                     it.name == "unRegisterLocationListener" && it.desc == "(Lcom/baidu/location/BDAbstractLocationListener;)V"
                 }.let { methodNode ->
-                    "${context.projectDir.lastPath()}->hook baidu map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}".println()
+                    state.log("${context.variantName}->hook baidu map  succeed: ${className}_${methodNode?.name}_${methodNode?.desc}")
                     methodNode?.instructions?.insert(
                         createBDAbsLocationUnRegisterInsnList()
                     )
