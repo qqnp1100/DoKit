@@ -12,6 +12,7 @@ import com.didichuxing.doraemonkit.kit.core.DoKitManager
 import com.didichuxing.doraemonkit.kit.core.AbsDoKitView
 import com.didichuxing.doraemonkit.kit.h5_help.bean.JsRequestBean
 import com.didichuxing.doraemonkit.kit.network.NetworkManager
+import com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig
 import com.didichuxing.doraemonkit.kit.network.room_db.DokitDbManager
 import com.didichuxing.doraemonkit.util.LogHelper
 import com.tencent.smtt.export.external.interfaces.*
@@ -71,7 +72,8 @@ class DoKitX5WebViewClient(webViewClient: WebViewClient, userAgent: String) : Pr
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
         //开关均被关闭则不进行拦截
-        if (!DoKitManager.H5_JS_INJECT && !DoKitManager.H5_VCONSOLE_INJECT) {
+        val injectVConsole = DoKitManager.H5_VCONSOLE_INJECT && DoKitBackendConfig.VCONSOLE_URL.isNotBlank()
+        if (!DoKitManager.H5_JS_INJECT && !injectVConsole) {
             return super.shouldInterceptRequest(view, request)
         }
         request?.let { webRequest ->
@@ -102,7 +104,7 @@ class DoKitX5WebViewClient(webViewClient: WebViewClient, userAgent: String) : Pr
                     OkHttpWrap.toResponseBody(response)?.string()
                 }
                 //注入vConsole的代码
-                if (DoKitManager.H5_VCONSOLE_INJECT) {
+                if (injectVConsole) {
                     newHtml = injectVConsoleHook(newHtml)
                 }
 
@@ -121,7 +123,7 @@ class DoKitX5WebViewClient(webViewClient: WebViewClient, userAgent: String) : Pr
                         val url = OkHttpWrap.createHttpUrl(requestBean.url)
                         val host = OkHttpWrap.toRequestHost(url)
                         //如果是dokit mock host 则不进行拦截
-                        if (host.equals(NetworkManager.MOCK_HOST, true)) {
+                        if (com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.isPlatformUrl(url.toString())) {
                             JsHookDataManager.jsRequestMap.remove(requestBean.requestId)
                             return null
                         }
@@ -143,89 +145,27 @@ class DoKitX5WebViewClient(webViewClient: WebViewClient, userAgent: String) : Pr
      * 处理数据mock的相关逻辑
      */
     private fun dealMock(requestBean: JsRequestBean, url: HttpUrl?, view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
-        url?.let { httpUrl ->
-            try {
-                val path = URLDecoder.decode(OkHttpWrap.toEncodedPath(httpUrl), "utf-8")
-                val queries = OkHttpWrap.toHttpQuery(httpUrl)
-                val jsonQuery = JsHttpUtil.transformQuery(queries)
-                val jsonRequestBody = JsHttpUtil.transformRequestBody(
-                    requestBean.method,
-                    requestBean.body,
-                    requestBean.headers
-                )
-
-                val interceptMatchedId =
-                    DokitDbManager.getInstance().isMockMatched(
-                        path,
-                        jsonQuery,
-                        jsonRequestBody,
-                        DokitDbManager.MOCK_API_INTERCEPT,
-                        DokitDbManager.FROM_SDK_OTHER
-                    )
-
-                val templateMatchedId =
-                    DokitDbManager.getInstance().isMockMatched(
-                        path,
-                        jsonQuery,
-                        jsonRequestBody,
-                        DokitDbManager.MOCK_API_TEMPLATE,
-                        DokitDbManager.FROM_SDK_OTHER
-                    )
-
-                //如果interceptMatchedId和templateMatchedId都为null 直接不进行操作
-                if (interceptMatchedId.isNullOrBlank() && templateMatchedId.isNullOrBlank()) {
-                    //web 抓包
-                    if (NetworkManager.isActive()) {
-                        try {
-                            //构建okhttp用来抓包
-                            val newRequest: Request =
-                                JsHttpUtil.createOkHttpRequest(requestBean, mUserAgent)
-
-                            if (JsHttpUtil.matchWhiteHost(newRequest)) {
-                                //发送模拟请求
-                                OkhttpClientUtil.okhttpClient.newCall(newRequest).execute()
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                    return super.shouldInterceptRequest(view, request)
-                }
-
-                val newRequest: Request =
-                    JsHttpUtil.createOkHttpRequest(requestBean, mUserAgent)
-                //发送模拟请求
-                val newResponse =
-                    OkhttpClientUtil.okhttpClient.newCall(newRequest).execute()
-                //是否命中拦截规则
-                if (!interceptMatchedId.isNullOrBlank()) {
-                    JsHookDataManager.jsRequestMap.remove(requestBean.requestId)
-                    return JsHttpUtil.matchedX5InterceptRule(
-                        httpUrl,
-                        path,
-                        interceptMatchedId,
-                        templateMatchedId,
-                        newRequest,
-                        newResponse,
-                        OkhttpClientUtil.okhttpClient
-                    )
-                }
-
-                //是否命中模板规则
-                if (!templateMatchedId.isNullOrBlank()) {
-                    JsHttpUtil.matchedTemplateRule(
-                        newResponse,
-                        path,
-                        templateMatchedId
-                    )
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+        try {
+            if (url == null) return super.shouldInterceptRequest(view, request)
+            val path = URLDecoder.decode(OkHttpWrap.toEncodedPath(url), "utf-8")
+            val query = JsHttpUtil.transformQuery(OkHttpWrap.toHttpQuery(url))
+            val body = JsHttpUtil.transformRequestBody(requestBean.method, requestBean.body, requestBean.headers)
+            val interceptId = DokitDbManager.getInstance().isMockMatched(path, query, body, DokitDbManager.MOCK_API_INTERCEPT, DokitDbManager.FROM_SDK_OTHER)
+            val templateId = DokitDbManager.getInstance().isMockMatched(path, query, body, DokitDbManager.MOCK_API_TEMPLATE, DokitDbManager.FROM_SDK_OTHER)
+            if (interceptId.isNullOrBlank() && templateId.isNullOrBlank() && !NetworkManager.isActive()) return super.shouldInterceptRequest(view, request)
+            val businessRequest = JsHttpUtil.createOkHttpRequest(requestBean, mUserAgent)
+            val response = JsHttpUtil.tryScene(path, interceptId) ?: OkhttpClientUtil.okhttpClient.newCall(businessRequest).execute()
+            response.use {
+                try { JsHttpUtil.matchedTemplateRule(it, path, templateId ?: "") } catch (cacheError: Exception) { cacheError.printStackTrace() }
+                return JsHttpUtil.createX5WebResourceResponse(it)
             }
+        } catch (error: Exception) {
+            error.printStackTrace()
+            // Do not dispatch an already attempted mutation a second time through WebView.
+            return com.tencent.smtt.export.external.interfaces.WebResourceResponse("text/plain", "UTF-8", java.io.ByteArrayInputStream("DoKit transport failure".toByteArray()))
+        } finally {
+            JsHookDataManager.jsRequestMap.remove(requestBean.requestId)
         }
-        JsHookDataManager.jsRequestMap.remove(requestBean.requestId)
-
-        return super.shouldInterceptRequest(view, request)
     }
 
 
@@ -264,7 +204,7 @@ class DoKitX5WebViewClient(webViewClient: WebViewClient, userAgent: String) : Pr
      */
     private fun injectVConsoleHook(html: String?): String {
         //读取本地js hook 代码
-        val vconsoleHook = ResourceUtils.readAssets2String("h5help/dokit_js_vconsole_hook.html")
+        val vconsoleHook = ResourceUtils.readAssets2String("h5help/dokit_js_vconsole_hook.html").replace("https://dokit.example.internal/resources/vconsole.min.js", com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.VCONSOLE_URL)
         val doc = Jsoup.parse(html)
         doc.outputSettings().prettyPrint(true)
         val elements = doc.getElementsByTag("head")

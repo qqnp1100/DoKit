@@ -46,6 +46,8 @@ typedef NS_ENUM(NSUInteger, DKMultiControlStreamManagerState) {
 
 - (void)unregisterWithListener:(id <DKMultiControlStreamManagerStateListener>)listener;
 
+- (void)enableMultiControlWithBackend;
+
 - (void)enableMultiControlWithUrl:(NSURL *)url;
 
 - (void)changeToMaster;

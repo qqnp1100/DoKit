@@ -40,7 +40,7 @@ object UploadFileAction {
         filePart?.let {
             val dirPath = FileManagerUtil.absoluteRootPath(formPart?.value)
             val fileName = filePart?.originalFileName
-            val file = File("$dirPath${File.separator}$fileName")
+            val file = File(FileManagerUtil.childPath(dirPath, fileName))
 
             it.streamProvider().use { inputStream: InputStream? ->
                 file.outputStream().buffered().use { outputStream ->

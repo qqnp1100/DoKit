@@ -40,6 +40,7 @@ class DoKitMockInterceptor : AbsDoKitInterceptor() {
     override fun intercept(chain: Interceptor.Chain): Response {
         //数据采集
         val request = chain.request()
+        if (com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.isPlatformUrl(request.url.toString())) return chain.proceed(request)
         val response = chain.proceed(request)
         try {
             if (DoKitTestManager.isClose()) {
@@ -89,32 +90,16 @@ class DoKitMockInterceptor : AbsDoKitInterceptor() {
             val k = "method=$method&path=$path&fragment=$fragment&query=$strQuery&contentType=$requestContentType&requestBody=$strRequestBody"
             LogHelper.i(TAG, "originKey===>$k")
             val key = k.encodeUtf8().md5().hex()
+            if (MockManager.legacyRecording && MockManager.MC_CASE_ID.isNotBlank()) {
+                runBlocking(mExceptionHandler) {
+                    val info = com.didichuxing.doraemonkit.kit.test.mock.data.HttpUploadInfo(
+                        DoKitManager.PRODUCT_ID, MockManager.MC_CASE_ID, k, key, method,
+                        path, fragment, requestContentType, queryMap, requestBodyMap, strResponseBody)
+                    HttpMockServer.uploadHttpInfo<Any>(info)
+                }
+                return response
+            }
             when (DoKitTestManager.getTestMode()) {
-//                TestMode.RECORDING -> {
-//                    //数据采集
-//                    // val responseBody4Base64 = String(EncodeUtils.base64Encode(strResponseBody))
-//                    doKitGlobalScope.launch(mExceptionHandler) {
-//                        val httInfo = HttpUploadInfo(
-//                            DoKitManager.PRODUCT_ID,
-//                            MockManager.MC_CASE_ID,
-//                            k,
-//                            key,
-//                            method,
-//                            path,
-//                            fragment,
-//                            requestContentType,
-//                            queryMap,
-//                            requestBodyMap,
-//                            strResponseBody
-//                        )
-//
-//                        val result = McHttpManager.uploadHttpInfo<Any>(httInfo)
-//                        if (result.code != McHttpManager.RESPONSE_OK) {
-//                            LogHelper.e(TAG, "e===>${result.msg}")
-//                        }
-//                    }
-//                }
-//                WSMode.CLIENT,
                 TestMode.HOST -> {
                     if (MockManager.MC_CASE_ID.isNotBlank() && DoKitManager.PRODUCT_ID.isNotBlank()) {
                         //将挂起函数转为阻塞调用 等待协程返回值

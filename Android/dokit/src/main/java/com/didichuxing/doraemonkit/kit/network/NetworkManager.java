@@ -21,17 +21,13 @@ public class NetworkManager {
      * ########以下为数据mock 的相关网络接口#########
      */
 
-    public static final String MOCK_SCHEME_HTTP = "http://";
-    public static final String MOCK_SCHEME_HTTPS = "https://";
-    //    private static final String MOCK_HOST_DEBUG = "xyrd.intra.xiaojukeji.com";
-    public static final String DOKIT_HOST = "www.dokit.cn";
-    public static final String MOCK_HOST_DEBUG = "mock.dokit.cn";
-    //    private static final String MOCK_HOST_DEBUG = "pre.dokit.cn";
-    public static final String MOCK_HOST_RELEASE = "mock.dokit.cn";
-    private static final String MOCK_DEBUG_DOMAIN = MOCK_SCHEME_HTTPS + MOCK_HOST_DEBUG;
-    private static final String MOCK_RELEASE_DOMAIN = MOCK_SCHEME_HTTPS + MOCK_HOST_RELEASE;
-    public static final String MOCK_DOMAIN = BuildConfig.DEBUG ? MOCK_DEBUG_DOMAIN : MOCK_RELEASE_DOMAIN;
-    public static final String MOCK_HOST = BuildConfig.DEBUG ? MOCK_HOST_DEBUG : MOCK_HOST_RELEASE;
+    public static String MOCK_SCHEME_HTTP = "http://";
+    public static String MOCK_SCHEME_HTTPS = "https://";
+    public static String DOKIT_HOST = DoKitBackendConfig.host(DoKitBackendConfig.PLATFORM_BASE_URL);
+    public static String MOCK_HOST_DEBUG = DoKitBackendConfig.host(DoKitBackendConfig.MOCK_BASE_URL);
+    public static String MOCK_HOST_RELEASE = MOCK_HOST_DEBUG;
+    public static String MOCK_DOMAIN = DoKitBackendConfig.MOCK_BASE_URL;
+    public static String MOCK_HOST = MOCK_HOST_DEBUG;
     /**
      * ########以上为数据mock 的相关网络接口#########
      */
@@ -42,28 +38,28 @@ public class NetworkManager {
      * 线上地址：https://www.dokit.cn/healthCheck/addCheckData
      * 测试环境地址:http://dokit-test.intra.xiaojukeji.com/healthCheck/addCheckData
      */
-    public static final String APP_HEALTH_URL = "https://www.dokit.cn/healthCheck/addCheckData";
+    public static String APP_HEALTH_URL = DoKitBackendConfig.endpoint(DoKitBackendConfig.PLATFORM_BASE_URL, "/healthCheck/addCheckData");
     /**
      * ########业务埋点的网络接口#########
      */
-    public static final String APP_DATA_PICK_URL = "https://www.dokit.cn/pointData/addPointData";
+    public static String APP_DATA_PICK_URL = DoKitBackendConfig.endpoint(DoKitBackendConfig.PLATFORM_BASE_URL, "/pointData/addPointData");
     //public static final String APP_DATA_PICK_URL = "http://dokit-test.intra.xiaojukeji.com/pointData/addPointData";
     /**
      * 慢函数操作文档
      */
 
-    public static final String APP_DOCUMENT_URL = "https://xingyun.xiaojukeji.com/docs/dokit/#/TimeProfiler";
+    public static String APP_DOCUMENT_URL = DoKitBackendConfig.endpoint(DoKitBackendConfig.RESOURCE_BASE_URL, "/docs/#/TimeProfiler");
 
     /**
      * 文件同步助手操作文档
      */
 
-    public static final String FILE_MANAGER_DOCUMENT_URL = "https://xingyun.xiaojukeji.com/docs/dokit/#/FileList";
+    public static String FILE_MANAGER_DOCUMENT_URL = DoKitBackendConfig.endpoint(DoKitBackendConfig.RESOURCE_BASE_URL, "/docs/#/FileList");
     /**
      * 线上环境
      * app 启动数据埋点
      */
-    public static final String APP_START_DATA_PICK_URL = "https://doraemon.xiaojukeji.com/uploadAppData";
+    public static String APP_START_DATA_PICK_URL = DoKitBackendConfig.endpoint(DoKitBackendConfig.PLATFORM_BASE_URL, "/uploadAppData");
 
     /**
      * 测试环境
@@ -73,7 +69,7 @@ public class NetworkManager {
     /**
      * dokit 更多页面接口请求
      */
-    public static final String DOKIT_MORE_PAGE_URL = "https://star.xiaojukeji.com/config/get.node?city=-1&areaid=&name=group";
+    public static String DOKIT_MORE_PAGE_URL = DoKitBackendConfig.endpoint(DoKitBackendConfig.PLATFORM_BASE_URL, "/config/get.node?city=-1&areaid=&name=group");
     /**
      * 预发环境
      */
@@ -225,5 +221,21 @@ public class NetworkManager {
 
     public int getTotalCount() {
         return mTotalCount;
+    }
+
+    public static void refreshBackendConfig() {
+        MOCK_SCHEME_HTTP = "http://";
+        MOCK_SCHEME_HTTPS = "https://";
+        DOKIT_HOST = DoKitBackendConfig.host(DoKitBackendConfig.PLATFORM_BASE_URL);
+        MOCK_HOST_DEBUG = DoKitBackendConfig.host(DoKitBackendConfig.MOCK_BASE_URL);
+        MOCK_HOST_RELEASE = MOCK_HOST_DEBUG;
+        MOCK_DOMAIN = DoKitBackendConfig.MOCK_BASE_URL;
+        MOCK_HOST = MOCK_HOST_DEBUG;
+        APP_HEALTH_URL = DoKitBackendConfig.endpoint(DoKitBackendConfig.PLATFORM_BASE_URL, "/healthCheck/addCheckData");
+        APP_DATA_PICK_URL = DoKitBackendConfig.endpoint(DoKitBackendConfig.PLATFORM_BASE_URL, "/pointData/addPointData");
+        APP_DOCUMENT_URL = DoKitBackendConfig.endpoint(DoKitBackendConfig.RESOURCE_BASE_URL, "/docs/#/TimeProfiler");
+        FILE_MANAGER_DOCUMENT_URL = DoKitBackendConfig.endpoint(DoKitBackendConfig.RESOURCE_BASE_URL, "/docs/#/FileList");
+        APP_START_DATA_PICK_URL = DoKitBackendConfig.endpoint(DoKitBackendConfig.PLATFORM_BASE_URL, "/uploadAppData");
+        DOKIT_MORE_PAGE_URL = DoKitBackendConfig.endpoint(DoKitBackendConfig.PLATFORM_BASE_URL, "/config/get.node?city=-1&areaid=&name=group");
     }
 }

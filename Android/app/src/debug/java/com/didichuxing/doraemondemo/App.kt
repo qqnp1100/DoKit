@@ -19,6 +19,7 @@ import com.didichuxing.doraemonkit.DoKit
 import com.didichuxing.doraemonkit.DoKitCallBack
 import com.didichuxing.doraemonkit.kit.AbstractKit
 import com.didichuxing.doraemonkit.kit.core.McClientProcessor
+import com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig
 import com.didichuxing.doraemonkit.kit.network.bean.NetworkRecord
 import com.didichuxing.doraemonkit.kit.network.okhttp.interceptor.DokitExtInterceptor
 import com.didichuxing.doraemonkit.util.LogUtils
@@ -68,12 +69,19 @@ class App : Application() {
         }
 
         mapKits["业务专区2"] = mutableListOf<AbstractKit>(DemoKit())
-
-
-
+        val backend = DoKitBackendConfig.Options().apply {
+            platformBaseUrl = BuildConfig.DOKIT_PLATFORM_URL
+            mockBaseUrl = BuildConfig.DOKIT_MOCK_URL
+            resourceBaseUrl = BuildConfig.DOKIT_RESOURCE_URL
+            hybridJsUrl = BuildConfig.DOKIT_HYBRID_JS_URL
+            vConsoleUrl = BuildConfig.DOKIT_VCONSOLE_URL
+            webSocketUrl = BuildConfig.DOKIT_WS_URL
+            projectId = BuildConfig.DOKIT_PROJECT_ID
+            sdkToken = BuildConfig.DOKIT_SDK_TOKEN
+            queryTimeoutMs = 8000
+        }
+        DoKitBackendConfig.configure(backend)
         DoKit.Builder(this)
-            .productId("b80092ca-1c43-4922-af59-7a1afb07401e")
-            .disableUpload()
             .customKits(mapKits)
             .fileManagerHttpPort(9001)
             .databasePass(mapOf("Person.db" to "a_password"))

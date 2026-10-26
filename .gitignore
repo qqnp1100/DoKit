@@ -25,3 +25,7 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Local self-hosted SDK outputs and private configuration
+/build/
+/dokit-backend.local.json

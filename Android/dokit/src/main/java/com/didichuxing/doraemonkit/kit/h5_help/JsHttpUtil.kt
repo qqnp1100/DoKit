@@ -103,201 +103,42 @@ object JsHttpUtil {
         return json
     }
 
-    /**
-     * 返回null 即代表返回原来的数据
-     */
-    fun matchedNormalInterceptRule(
-        url: HttpUrl,
-        path: String,
-        interceptMatchedId: String,
-        templateMatchedId: String,
-        oldRequest: Request,
-        oldResponse: Response,
-        okHttpClient: OkHttpClient
-    ): WebResourceResponse? {
-        //判断是否需要重定向数据接口
-        //http https
+    private val sceneClient = OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
+        .connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(8, java.util.concurrent.TimeUnit.SECONDS).build()
 
-        //判断是否需要重定向数据接口
-        //http https
-        val scheme = OkHttpWrap.toScheme(url)
-        val interceptApiBean = DokitDbManager.getInstance().getInterceptApiByIdInMap(
-            path,
-            interceptMatchedId,
-            DokitDbManager.FROM_SDK_OTHER
-        )
-        if (interceptApiBean == null) {
-            matchedTemplateRule(oldResponse, path, templateMatchedId)
-            return null
-        }
-
-        interceptApiBean as MockInterceptApiBean
-        val selectedSceneId = interceptApiBean.selectedSceneId
-        //开关是否被打开
-        //开关是否被打开
-        if (!interceptApiBean.isOpen) {
-            matchedTemplateRule(oldResponse, path, templateMatchedId)
-            return null
-        }
-
-        //判断是否有选中的场景
-
-        //判断是否有选中的场景
-        if (TextUtils.isEmpty(selectedSceneId)) {
-            matchedTemplateRule(oldResponse, path, templateMatchedId)
-            return null
-        }
-        val sb = StringBuilder()
-        val newUrl: String
-        newUrl = if (NetworkManager.MOCK_SCHEME_HTTP.contains(scheme.lowercase(Locale.ROOT))) {
-            sb.append(NetworkManager.MOCK_SCHEME_HTTP).append(NetworkManager.MOCK_HOST)
-                .append("/api/app/scene/").append(selectedSceneId).toString()
-        } else {
-            sb.append(NetworkManager.MOCK_SCHEME_HTTPS).append(NetworkManager.MOCK_HOST)
-                .append("/api/app/scene/").append(selectedSceneId).toString()
-        }
-
-
-        val newRequest = Request.Builder()
-            .method("GET", null)
-            .url(newUrl).build()
-        //需要提前关闭数据流 不然在某些场景下会报错
-        oldResponse.close()
-        val newResponse: Response = okHttpClient.newCall(newRequest).execute()
-        if (OkHttpWrap.toResponseCode(newResponse) == 200) {
-            //拦截命中提示
-            ToastUtils.showShort("接口别名:==" + interceptApiBean.mockApiName + "==已被拦截")
-            //判断新的response是否有数据
-            return if (OkHttpWrap.toResponseBody(newResponse) != null) {
-                matchedTemplateRule(newResponse, path, templateMatchedId)
-                createNormalWebResourceResponse(newResponse)
-            } else {
-                matchedTemplateRule(oldResponse, path, templateMatchedId)
-                null
-            }
-        }
-        matchedTemplateRule(oldResponse, path, templateMatchedId)
-        return null
+    fun tryScene(path: String, id: String?): Response? {
+        if (NetworkManager.MOCK_DOMAIN.isEmpty() || id.isNullOrBlank()) return null
+        val api = DokitDbManager.getInstance().getInterceptApiByIdInMap(path, id, DokitDbManager.FROM_SDK_OTHER) as? MockInterceptApiBean ?: return null
+        if (!api.isOpen || api.selectedSceneId.isNullOrBlank()) return null
+        return try {
+            val request = Request.Builder().url(NetworkManager.MOCK_DOMAIN + "/api/app/scene/" + android.net.Uri.encode(api.selectedSceneId))
+                .header("X-DoKit-Token", com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.SDK_TOKEN).get().build()
+            sceneClient.newCall(request).execute()
+        } catch (unavailable: java.io.IOException) { null }
     }
 
-    private fun createNormalWebResourceResponse(response: Response): WebResourceResponse {
-        val bodyContent = response.bodyContent()
-        try {
-            //mimeType 会影响js的数据展现形式
-            JSONObject(bodyContent)
-            return WebResourceResponse(
-                "application/json",
-                "UTF-8",
-                ConvertUtils.string2InputStream(bodyContent, "UTF-8")
-            )
-        } catch (e: Exception) {
-            return WebResourceResponse(
-                response.header("Content-Type", "application/json"),
-                "UTF-8",
-                ConvertUtils.string2InputStream(bodyContent, "UTF-8")
-            )
+    fun createNormalWebResourceResponse(response: Response): WebResourceResponse {
+        val type = response.header("Content-Type", "application/json")!!.substringBefore(';')
+        val bytes = OkHttpWrap.toResponseBody(response)?.bytes() ?: ByteArray(0)
+        val result = WebResourceResponse(type, "UTF-8", java.io.ByteArrayInputStream(bytes))
+        if (android.os.Build.VERSION.SDK_INT >= 21 && response.code() !in 300..399) {
+            result.setStatusCodeAndReasonPhrase(response.code(), response.message().ifBlank { "Mock" })
+            result.responseHeaders = response.headers().toMultimap().mapValues { it.value.joinToString(", ") }
         }
-
-
+        return result
     }
 
-    /**
-     * 返回null 即代表返回原来的数据
-     */
-    fun matchedX5InterceptRule(
-        url: HttpUrl,
-        path: String,
-        interceptMatchedId: String,
-        templateMatchedId: String,
-        oldRequest: Request,
-        oldResponse: Response,
-        okHttpClient: OkHttpClient
-    ): com.tencent.smtt.export.external.interfaces.WebResourceResponse? {
-        //判断是否需要重定向数据接口
-        //http https
-
-        //判断是否需要重定向数据接口
-        //http https
-        val scheme = OkHttpWrap.toScheme(url)
-        val interceptApiBean = DokitDbManager.getInstance().getInterceptApiByIdInMap(
-            path,
-            interceptMatchedId,
-            DokitDbManager.FROM_SDK_OTHER
-        )
-        if (interceptApiBean == null) {
-            matchedTemplateRule(oldResponse, path, templateMatchedId)
-            return null
+    fun createX5WebResourceResponse(response: Response): com.tencent.smtt.export.external.interfaces.WebResourceResponse {
+        val type = response.header("Content-Type", "application/json")!!.substringBefore(';')
+        val bytes = OkHttpWrap.toResponseBody(response)?.bytes() ?: ByteArray(0)
+        val result = com.tencent.smtt.export.external.interfaces.WebResourceResponse(type, "UTF-8", java.io.ByteArrayInputStream(bytes))
+        if (response.code() !in 300..399) {
+            result.setStatusCodeAndReasonPhrase(response.code(), response.message().ifBlank { "Mock" })
+            result.responseHeaders = response.headers().toMultimap().mapValues { it.value.joinToString(", ") }
         }
-
-        interceptApiBean as MockInterceptApiBean
-        val selectedSceneId = interceptApiBean.selectedSceneId
-        //开关是否被打开
-        //开关是否被打开
-        if (!interceptApiBean.isOpen) {
-            matchedTemplateRule(oldResponse, path, templateMatchedId)
-            return null
-        }
-
-        //判断是否有选中的场景
-
-        //判断是否有选中的场景
-        if (TextUtils.isEmpty(selectedSceneId)) {
-            matchedTemplateRule(oldResponse, path, templateMatchedId)
-            return null
-        }
-        val sb = StringBuilder()
-        val newUrl: String
-        newUrl = if (NetworkManager.MOCK_SCHEME_HTTP.contains(scheme.lowercase(Locale.ROOT))) {
-            sb.append(NetworkManager.MOCK_SCHEME_HTTP).append(NetworkManager.MOCK_HOST)
-                .append("/api/app/scene/").append(selectedSceneId).toString()
-        } else {
-            sb.append(NetworkManager.MOCK_SCHEME_HTTPS).append(NetworkManager.MOCK_HOST)
-                .append("/api/app/scene/").append(selectedSceneId).toString()
-        }
-
-
-        val newRequest = Request.Builder()
-            .method("GET", null)
-            .url(newUrl).build()
-        //需要提前关闭数据流 不然在某些场景下会报错
-        oldResponse.close()
-        val newResponse: Response = okHttpClient.newCall(newRequest).execute()
-        if (OkHttpWrap.toResponseCode(newResponse) == 200) {
-            //拦截命中提示
-            ToastUtils.showShort("接口别名:==" + interceptApiBean.mockApiName + "==已被拦截")
-            //判断新的response是否有数据
-            return if (OkHttpWrap.toResponseBody(newResponse) != null) {
-                matchedTemplateRule(newResponse, path, templateMatchedId)
-                createX5WebResourceResponse(newResponse)
-            } else {
-                matchedTemplateRule(oldResponse, path, templateMatchedId)
-                null
-            }
-        }
-        matchedTemplateRule(oldResponse, path, templateMatchedId)
-        return null
+        return result
     }
-
-    private fun createX5WebResourceResponse(response: Response): com.tencent.smtt.export.external.interfaces.WebResourceResponse {
-        val bodyContent = response.bodyContent()
-        try {
-            //mimeType 会影响js的数据展现形式
-            JSONObject(bodyContent)
-            return com.tencent.smtt.export.external.interfaces.WebResourceResponse(
-                "application/json",
-                "UTF-8",
-                ConvertUtils.string2InputStream(bodyContent, "UTF-8")
-            )
-        } catch (e: Exception) {
-            return com.tencent.smtt.export.external.interfaces.WebResourceResponse(
-                response.header("Content-Type", "application/json"),
-                "UTF-8",
-                ConvertUtils.string2InputStream(bodyContent, "UTF-8")
-            )
-        }
-
-    }
-
 
     /**
      *是否命中模板功能
@@ -350,7 +191,7 @@ object JsHttpUtil {
             if (TextUtils.isEmpty(strResponseBody)) {
                 return
             }
-            if (host == NetworkManager.MOCK_HOST) {
+            if (com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.isPlatformUrl(response.request().url().toString())) {
                 mockApi.responseFrom = MockTemplateApiBean.RESPONSE_FROM_MOCK
             } else {
                 mockApi.responseFrom = MockTemplateApiBean.RESPONSE_FROM_REAL

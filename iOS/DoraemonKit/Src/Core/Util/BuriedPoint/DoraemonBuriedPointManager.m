@@ -1,3 +1,4 @@
+#import "DoraemonBackendConfig.h"
 //
 //  DoraemonBuriedPointManager.m
 //  DoraemonKit
@@ -89,7 +90,7 @@
         [self.basicInfoDic setValue:self.pointArray forKey:@"events"];
         NSMutableDictionary *params = [self.basicInfoDic copy];
 
-        [DoraemonNetworkUtil postWithUrlString:@"https://www.dokit.cn/pointData/addPointData" params:params success:^(NSDictionary * _Nonnull result) {
+        [DoraemonNetworkUtil postWithUrlString:DoraemonBackendPlatformURL(@"/pointData/addPointData") params:params success:^(NSDictionary * _Nonnull result) {
             NSInteger code = [result[@"code"] integerValue];
             if (code == 200) {
                 [self removePointArray];

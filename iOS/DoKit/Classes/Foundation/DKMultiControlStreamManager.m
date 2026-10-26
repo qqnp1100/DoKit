@@ -1,3 +1,4 @@
+#import "DoraemonBackendConfig.h"
 /**
  * Copyright 2017 Beijing DiDi Infinity Technology and Development Co., Ltd.
  *
@@ -79,6 +80,10 @@ NSString *generateId(void) {
     }
 }
 
+- (void)enableMultiControlWithBackend {
+    [self enableMultiControlWithUrl:[NSURL URLWithString:DoraemonBackendValue(@"webSocketUrl")]];
+}
+
 - (void)enableMultiControlWithUrl:(NSURL *)url {
     if (self.webSocketSession) {
         return;
@@ -87,7 +92,19 @@ NSString *generateId(void) {
     __weak typeof(self) weakSelf = self;
     self.webSocketSession.notifyHandler = ^(DKCommonDTOModel *commonDTOModel) {
         typeof(weakSelf) self = weakSelf;
-        if ([commonDTOModel.dataType isEqualToString:MULTI_CONTROL_HOST]) {
+        if ([commonDTOModel.dataType isEqualToString:@"gateway_control"]) {
+            NSDictionary *command = [NSJSONSerialization JSONObjectWithData:[commonDTOModel.data dataUsingEncoding:NSUTF8StringEncoding] options:0 error:NULL];
+            if ([command[@"command"] isEqualToString:@"set_host"]) {
+                if ([command[@"params"][@"host"] boolValue]) [self changeToMaster]; else [self changeToSlave];
+                DKCommonDTOModel *ack = [[DKCommonDTOModel alloc] init];
+                ack.method = @"NOTIFY"; ack.dataType = @"gateway_control"; ack.deviceType = DK_DEVICE_TYPE; ack.connectSerial = self.webSocketSession.sessionUUID;
+                NSDictionary *result = @{@"command": @"host_response", @"message": @"success", @"params": @{@"host": @(self.isMaster)}};
+                ack.data = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:result options:0 error:NULL] encoding:NSUTF8StringEncoding];
+                NSDictionary *json = [MTLJSONAdapter JSONDictionaryFromModel:ack error:NULL];
+                NSString *text = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:json options:0 error:NULL] encoding:NSUTF8StringEncoding];
+                [self.webSocketSession sendString:text requestId:nil completionHandler:nil];
+            }
+        } else if ([commonDTOModel.dataType isEqualToString:MULTI_CONTROL_HOST]) {
             [self changeToSlave];
         } else if ([commonDTOModel.dataType isEqualToString:DK_ACTION]) {
             // Handle behaviorId and process data.
@@ -409,7 +426,7 @@ NSString *generateId(void) {
     commonDTOModel.data = message;
     commonDTOModel.method = DK_WEBSOCKET_BROADCAST;
     commonDTOModel.connectSerial = self.webSocketSession.sessionUUID;
-    commonDTOModel.dataType = DK_ACTION;
+    commonDTOModel.dataType = DK_TCP;
     NSError *error = nil;
     NSDictionary *jsonDictionary = [MTLJSONAdapter JSONDictionaryFromModel:commonDTOModel error:&error];
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonDictionary ?: @{} options:0 error:&error];

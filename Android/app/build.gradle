@@ -6,6 +6,17 @@ plugins {
 apply from: 'doraemonkit.gradle'
 //apply plugin: 'com.didiglobal.booster'
 
+// Private debug configuration; never embed SDK credentials in tracked source or Release.
+def backendConfigFile = rootProject.layout.projectDirectory.file('../dokit-backend.local.json')
+def backendConfigText = providers.fileContents(backendConfigFile).asText.orElse('{}')
+def backendConfig = new groovy.json.JsonSlurper().parseText(backendConfigText.get())
+def backendFields = [
+    DOKIT_PLATFORM_URL: 'platformBaseUrl', DOKIT_MOCK_URL: 'mockBaseUrl',
+    DOKIT_RESOURCE_URL: 'resourceBaseUrl', DOKIT_HYBRID_JS_URL: 'hybridJsUrl',
+    DOKIT_VCONSOLE_URL: 'vConsoleUrl', DOKIT_WS_URL: 'webSocketUrl',
+    DOKIT_PROJECT_ID: 'projectId', DOKIT_SDK_TOKEN: 'sdkToken'
+]
+
 android {
     namespace 'com.didichuxing.doraemondemo'
     compileSdkVersion rootProject.ext.android["compileSdkVersion"]
@@ -20,6 +31,7 @@ android {
             abiFilters "arm64-v8a"
         }
         multiDexEnabled true
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     signingConfigs {
         release {
@@ -31,6 +43,9 @@ android {
     }
     buildTypes {
         debug {
+            backendFields.each { field, key ->
+                buildConfigField 'String', field, groovy.json.JsonOutput.toJson(backendConfig[key] ?: '')
+            }
             manifestPlaceholders['BAIDU_MAP_API_KEY'] = providers.gradleProperty('BAIDU_MAP_API_KEY')
                 .orElse(providers.environmentVariable('BAIDU_MAP_API_KEY')).getOrElse('')
             resValue("string", "dokit_db_Person.db", "a_password")
@@ -88,6 +103,7 @@ android {
      * 支持ViewBinding
      */
     buildFeatures {
+        buildConfig = true
         viewBinding = true
         resValues = true
     }
@@ -166,6 +182,10 @@ dependencies {
     debugImplementation project(path: ':dokit-util')
 
     testImplementation rootProject.ext.dependencies["junit"]
+    androidTestImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test:runner:1.2.0'
+    androidTestImplementation rootProject.ext.dependencies['volley']
+    androidTestImplementation rootProject.ext.dependencies['ktor_server_cio']
     debugImplementation rootProject.ext.dependencies["constraintLayout"]
     implementation rootProject.ext.dependencies["multidex"]
     debugImplementation rootProject.ext.dependencies["flexbox"]

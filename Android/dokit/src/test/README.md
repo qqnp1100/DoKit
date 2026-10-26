@@ -6,6 +6,17 @@ roundtrip. WebSocket session tests use MockWebServer 4.7.0 on loopback, assert t
 and binary exchange, clean closure and failed handshakes, and bound every wait.
 No private server address is used by the JVM suite.
 
+The Demo also has device regression tests for the **plugin-instrumented** OkHttp
+constructor. Ordinary library JVM tests do not inject `OkHttpHook` and cannot
+detect recursive interceptor construction. Run the following on a connected
+device to check startup, business-client instrumentation, unhooked SDK transport,
+cloned clients, and cleanup after a failed internal build (no network requests):
+
+```sh
+rtk proxy ./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.didichuxing.doraemondemo.OkHttpHookInstrumentedTest
+```
+
 The high-level `WebSocketClient` performs Android device/package lookup and uses
 SharedPreferences during login. Its existing connection test lives in
 `src/androidTest` and is skipped unless an explicit integration endpoint is given.

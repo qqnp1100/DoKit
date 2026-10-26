@@ -13,6 +13,7 @@ import com.didichuxing.doraemonkit.util.FileUtils
  */
 object RenameFileAction {
     fun renameFileRes(newName: String, filePath: String): MutableMap<String, Any> {
+        com.didichuxing.doraemonkit.kit.filemanager.FileManagerUtil.childPath(java.io.File(filePath).parent!!, newName)
         val response = mutableMapOf<String, Any>()
         if (FileUtils.isFileExists(filePath)) {
             FileUtils.rename(filePath, newName)

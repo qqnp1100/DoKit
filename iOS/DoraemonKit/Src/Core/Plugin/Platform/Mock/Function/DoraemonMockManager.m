@@ -1,3 +1,4 @@
+#import "DoraemonBackendConfig.h"
 //
 //  DoraemonMockManager.m
 //  DoraemonKit
@@ -57,21 +58,33 @@
     }
 }
 
-- (void)queryMockData:(void(^)(int flag))block{
+- (void)queryMockData:(void(^)(int flag))block {
+    [self queryMockPage:1 accumulated:[NSMutableArray array] completion:block];
+}
+
+- (void)queryMockPage:(NSUInteger)page accumulated:(NSMutableArray *)accumulated completion:(void(^)(int flag))block{
     NSString *pId = [DoraemonManager shareInstance].pId;
-    NSString *mockDomain = [DoraemonManager shareInstance].mockDomain ? [DoraemonManager shareInstance].mockDomain : @"https://mock.dokit.cn/";
+    NSString *mockDomain = [DoraemonManager shareInstance].mockDomain ? [DoraemonManager shareInstance].mockDomain : DoraemonBackendMockDomain();
     if (pId && pId.length>0) {
         NSDictionary *params = @{
             @"projectId":pId,
             @"isfull":@"1",
-            @"curPage":@"1",
+            @"curPage":@(page),
             @"pageSize":@"500"
         };
         
         __weak typeof(self) weakSelf = self;
         NSString *mockInterfaceUrl = [mockDomain stringByAppendingString:@"api/app/interface"];
         [DoraemonNetworkUtil getWithUrlString:mockInterfaceUrl params:params success:^(NSDictionary * _Nonnull result) {
-            NSArray *apis = result[@"data"][@"datalist"];
+            NSArray *pageItems = result[@"data"][@"datalist"];
+            if (![pageItems isKindOfClass:NSArray.class] || [result[@"code"] integerValue] != 200) { block(2); return; }
+            [accumulated addObjectsFromArray:pageItems];
+            if (pageItems.count == 500) {
+                if (page >= 2000) { block(2); return; }
+                [weakSelf queryMockPage:page + 1 accumulated:accumulated completion:block];
+                return;
+            }
+            NSArray *apis = accumulated;
             NSMutableArray<DoraemonMockAPIModel *> *mockArray = [[NSMutableArray alloc] init];
             NSMutableArray<DoraemonMockUpLoadModel *> *uploadArray = [[NSMutableArray alloc] init];
             NSMutableArray *groups = [[NSMutableArray alloc] init];
@@ -332,7 +345,7 @@
     NSString *apiId = upload.apiId;
     NSString *result = upload.result;
     NSString *projectId = [DoraemonManager shareInstance].pId;
-    NSString *mockDomain = [DoraemonManager shareInstance].mockDomain ? [DoraemonManager shareInstance].mockDomain : @"https://mock.dokit.cn/";
+    NSString *mockDomain = [DoraemonManager shareInstance].mockDomain ? [DoraemonManager shareInstance].mockDomain : DoraemonBackendMockDomain();
     if (projectId && projectId.length > 0) {
         if (!result) {
             return;

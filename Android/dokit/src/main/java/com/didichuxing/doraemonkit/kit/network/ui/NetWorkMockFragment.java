@@ -630,7 +630,7 @@ public class NetWorkMockFragment extends BaseFragment {
                         if (initTemplateInterceptResponse.isEmpty()) {
                             initTemplateInterceptResponse = response;
                         } else {
-                            MockApiResponseBean AllMockApiResponseBean = GsonUtils.fromJson(initMockInterceptResponse, MockApiResponseBean.class);
+                            MockApiResponseBean AllMockApiResponseBean = GsonUtils.fromJson(initTemplateInterceptResponse, MockApiResponseBean.class);
                             List<MockApiResponseBean.DataBean.DatalistBean> AllLists = AllMockApiResponseBean.getData().getDatalist();
                             AllLists.addAll(lists);
                             initTemplateInterceptResponse = GsonUtils.toJson(AllMockApiResponseBean);

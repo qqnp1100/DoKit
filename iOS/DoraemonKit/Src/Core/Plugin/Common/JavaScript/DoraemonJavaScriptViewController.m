@@ -1,3 +1,4 @@
+#import "DoraemonBackendConfig.h"
 //
 //  DoraemonJavaScriptViewController.m
 //  DoraemonKit
@@ -89,7 +90,7 @@
     NSArray *scriptItems = [DoraemonCacheManager.sharedInstance jsHistoricalRecord];
     if (!scriptItems) {
         //添加内置脚本
-        [DoraemonCacheManager.sharedInstance saveJsHistoricalRecordWithText:@"//安装vConsole\nimport('https://unpkg.com/vconsole').then(() => {\n    new window.VConsole()\n})" forKey:@"vConsole"];
+        [DoraemonCacheManager.sharedInstance saveJsHistoricalRecordWithText:[NSString stringWithFormat:@"//安装vConsole\nimport('%@').then(() => {\n    new window.VConsole()\n})", DoraemonBackendValue(@"vConsoleUrl")] forKey:@"vConsole"];
         [DoraemonCacheManager.sharedInstance saveJsHistoricalRecordWithText:@"//重新加载\nlocation.reload()" forKey:@"Reload"];
         [DoraemonCacheManager.sharedInstance saveJsHistoricalRecordWithText:@"//后退\nhistory.go(-1)" forKey:@"Back"];
         [DoraemonCacheManager.sharedInstance saveJsHistoricalRecordWithText:@"//前进\nhistory.go(1)" forKey:@"Forward"];

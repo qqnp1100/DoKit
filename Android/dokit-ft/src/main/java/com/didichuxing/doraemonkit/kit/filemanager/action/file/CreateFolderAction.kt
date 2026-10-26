@@ -16,7 +16,7 @@ object CreateFolderAction {
     fun createFolderRes(dirPath: String, fileName: String): MutableMap<String, Any> {
         val response = mutableMapOf<String, Any>()
         if (FileUtils.isDir(dirPath)) {
-            val createOrExistsFile = FileUtils.createOrExistsDir("$dirPath${File.separator}$fileName")
+            val createOrExistsFile = FileUtils.createOrExistsDir(com.didichuxing.doraemonkit.kit.filemanager.FileManagerUtil.childPath(dirPath, fileName))
             if (createOrExistsFile) {
                 response["code"] = 200
                 response["success"] = true

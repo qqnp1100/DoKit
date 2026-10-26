@@ -49,6 +49,19 @@ object MultiControlManager {
 
     private val onModeChangeListeners: MutableSet<OnMultiControlModeChangeListener> = mutableSetOf()
 
+    /** Explicitly connect using the configured full pairing URL. */
+    fun startConfiguredClientMode() {
+        val url = com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.WEB_SOCKET_URL
+        if (url.isBlank()) return
+        startClientMode(ConnectAddress("Self-hosted", url, ""))
+    }
+
+    fun startConfiguredHostMode() {
+        val url = com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.WEB_SOCKET_URL
+        if (url.isBlank()) return
+        startHostMode(ConnectAddress("Self-hosted", url, ""))
+    }
+
     fun getMode(): TestMode {
         return mode
     }
@@ -192,7 +205,17 @@ object MultiControlManager {
                 })
                 it.addOnWebSocketTextPackageListener(object : OnWebSocketTextPackageListener {
                     override fun onReceiveTextPackage(webSocket: OkHttpWebSocketSession, textPackage: TextPackage) {
-                        if (textPackage.type == PackageType.AUTOTEST || textPackage.type == PackageType.BROADCAST) {
+                        if (textPackage.type == PackageType.NOTIFY && textPackage.contentType == "gateway_control") {
+                            val command = org.json.JSONObject(textPackage.data)
+                            if (command.optString("command") == "set_host") {
+                                val host = command.optJSONObject("params")?.optBoolean("host", false) ?: false
+                                mainScope.launch {
+                                    changeMode(if (host) TestMode.HOST else TestMode.CLIENT)
+                                    val response = mapOf("command" to "host_response", "message" to "success", "params" to mapOf("host" to (mode == TestMode.HOST)))
+                                    webSocketClient.send(JsonParser.toJson(PackageType.NOTIFY, response, "gateway_control"))
+                                }
+                            }
+                        } else if (textPackage.type == PackageType.AUTOTEST || textPackage.type == PackageType.BROADCAST) {
                             when (textPackage.contentType) {
                                 "mc_host" -> {
                                     onReceiveHostModeChange()

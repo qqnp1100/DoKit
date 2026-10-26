@@ -29,6 +29,7 @@ public class DoraemonStatisticsUtil {
     }
 
     public static void uploadUserInfo(Context context) throws Exception {
+        if (NetworkManager.APP_START_DATA_PICK_URL.isEmpty()) return;
         String appId = DoKitSystemUtil.getPackageName(context);
         String appName = DoKitSystemUtil.getAppName(context);
         String type = "Android";
@@ -50,11 +51,12 @@ public class DoraemonStatisticsUtil {
             LogHelper.e(TAG, e.toString());
         }
 
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder().followRedirects(false).followSslRedirects(false).build();
         RequestBody requestBody = RequestBody.create(mediaType,
                 jsonObject.toString());
         Request request = new Request.Builder()
                 .url(NetworkManager.APP_START_DATA_PICK_URL)
+                .header("X-DoKit-Token", com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.SDK_TOKEN)
                 .post(requestBody)
                 .build();
         Call call = client.newCall(request);

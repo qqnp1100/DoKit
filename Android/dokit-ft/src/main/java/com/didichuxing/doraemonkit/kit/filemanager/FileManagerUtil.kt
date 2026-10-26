@@ -29,10 +29,15 @@ object FileManagerUtil {
      */
     fun relativeRootPath(path: String?): String {
         path?.let {
-            if (it.contains(internalAppRootPath)) {
-                return it.replace(internalAppRootPath, "$ROOT_PATH_STR$internalAppRootReplacePath")
-            } else if (it.contains(externalStorageRootPath)) {
-                return it.replace(externalStorageRootPath, "$ROOT_PATH_STR$externalStorageRootReplacePath")
+            val canonical = java.io.File(it).canonicalPath
+            val aliases = mapOf(
+                java.io.File(internalAppRootPath).canonicalPath to "$ROOT_PATH_STR$internalAppRootReplacePath",
+                java.io.File(externalStorageRootPath).canonicalPath to "$ROOT_PATH_STR$externalStorageRootReplacePath"
+            )
+            aliases.entries.firstOrNull {
+                canonical == it.key || canonical.startsWith(it.key + java.io.File.separator)
+            }?.let { alias ->
+                return alias.value + canonical.removePrefix(alias.key)
             }
             return it
         }
@@ -43,16 +48,22 @@ object FileManagerUtil {
     /**
      * 合并绝对路径
      */
-    fun absoluteRootPath(path: String?): String {
-        path?.let {
-            if (it.contains("$ROOT_PATH_STR$internalAppRootReplacePath")) {
-                return it.replace("$ROOT_PATH_STR$internalAppRootReplacePath", internalAppRootPath)
-            } else if (it.contains("$ROOT_PATH_STR$externalStorageRootReplacePath")) {
-                return it.replace("$ROOT_PATH_STR$externalStorageRootReplacePath", externalStorageRootPath)
-            }
-            return it
-        }
-        return ""
+    fun securePath(path: String): String = DoKitFileScope.resolve(path,
+        arrayOf(internalAppRootPath, externalStorageRootPath))
+
+    fun childPath(dir: String, name: String?): String {
+        require(!name.isNullOrBlank() && name != "." && name != ".." && !name.contains('/') && !name.contains('\\')) { "Invalid file name" }
+        return securePath(java.io.File(dir, name!!).path)
     }
 
+    fun absoluteRootPath(path: String?): String {
+        if (path.isNullOrBlank()) return ""
+        if (path == ROOT_PATH_STR) return ROOT_PATH_STR
+        val aliases = mapOf("$ROOT_PATH_STR$internalAppRootReplacePath" to internalAppRootPath,
+            "$ROOT_PATH_STR$externalStorageRootReplacePath" to externalStorageRootPath)
+        val match = aliases.entries.firstOrNull { path == it.key || path.startsWith(it.key + "/") }
+        val mapped = if (match == null) path else match.value + path.removePrefix(match.key)
+        val resolved = securePath(mapped)
+        return if (resolved == externalStorageRootPath) resolved else resolved + java.io.File.separator
+    }
 }

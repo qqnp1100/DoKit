@@ -1,3 +1,4 @@
+import { getBackendConfig } from '@dokit/web-utils';
 import {
     getGlobalData
 } from '../../store'
@@ -11,6 +12,7 @@ export default class Socket {
     constructor(url) {
         this.instance = getCurrentInstance();
         this.state = getGlobalData();
+        this.pendingQueries = new Map();
         this.socket = null;
         this.webSocketState = null;
         this.reconnectTimer = null;
@@ -56,6 +58,19 @@ export default class Socket {
             })
             this.onmessage((e) => {
                 let msg = JSON.parse(e.data);
+                if (msg.type === 'DATA' && this.pendingQueries.has(msg.pid)) {
+                    clearTimeout(this.pendingQueries.get(msg.pid));
+                    this.pendingQueries.delete(msg.pid);
+                }
+                if (msg.type === "NOTIFY" && msg.contentType === "gateway_control") {
+                    const command = JSON.parse(msg.data);
+                    if (command.command === "set_host") {
+                        const host = command.params && command.params.host === true;
+                        this.state.isHost = host;
+                        if (host) this.send({ type: "BROADCAST", contentType: "mc_host", channelSerial: this.state.channelSerial, data: JSON.stringify({ connectSerial: this.state.connectSerial }) });
+                        Promise.resolve().then(() => this.send({ type: "NOTIFY", contentType: "gateway_control", channelSerial: this.state.channelSerial, data: JSON.stringify({ command: "host_response", message: "success", params: { host: this.state.isHost } }) }));
+                    }
+                }
                 if (msg.type === "HEART_BEAT") {
                     this.webSocketState = true
                 }
@@ -63,6 +78,7 @@ export default class Socket {
         }
     }
     init() {
+        if (!this.wsUrl || !this.wsUrl.trim()) return;
         try {
             if (!this.socket) {
                 this.socket = new WebSocket(this.wsUrl)
@@ -96,6 +112,14 @@ export default class Socket {
         this.startHeartBeatTime && clearTimeout(this.startHeartBeatTime);
     }
     send(msg) {
+        if (this.socket && msg.type === 'DATA' && msg.contentType === 'query' && msg.pid) {
+            const target = this.socket;
+            const timer = setTimeout(() => {
+                this.pendingQueries.delete(msg.pid);
+                target.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({type:'DATA', pid:msg.pid, code:404, data:''}) }));
+            }, getBackendConfig().queryTimeoutMs);
+            this.pendingQueries.set(msg.pid, timer);
+        }
         this.socket && this.socket.send(JSON.stringify(msg))
     }
     startHeartBeat(time) {

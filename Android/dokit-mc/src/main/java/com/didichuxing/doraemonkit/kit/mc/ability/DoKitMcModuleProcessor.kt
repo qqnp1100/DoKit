@@ -54,6 +54,8 @@ class DoKitMcModuleProcessor : DokitAbility.DokitModuleProcessor {
                         ) {
                             DoKit.launchFloating(RecordingDoKitView::class)
                             DoKitMcManager.IS_MC_RECODING = true
+                            com.didichuxing.doraemonkit.kit.test.mock.MockManager.legacyRecording = true
+                            DoKitTestManager.startTest(com.didichuxing.doraemonkit.kit.test.TestMode.HOST)
                             DoKitMcManager.MC_CASE_ID =
                                 SPUtils.getInstance().getString(DoKitMcManager.MC_CASE_ID_KEY)
                         } else {

@@ -4,7 +4,7 @@ const app = getApp()
 if (!Object.prototype.hasOwnProperty.call(app, 'originRequest') && Object.prototype.toString.apply(getApp().originRequest) !== "[object Function]") {
     app.originRequest = wx.request
 }
-const mockBaseUrl = 'https://mock.dokit.cn'
+const { getBackendConfig, lockBackendConfig, isBackendUrl } = require('../../utils/backend')
 Component({
     properties: {
         projectId: {
@@ -24,14 +24,16 @@ Component({
     },
     lifetimes: {
       created () {
-        console.log('app', app)
+        // Backend credentials are never logged.
       },
       attached () {
+        lockBackendConfig()
+        if (!this.data.projectId) this.setData({ projectId: getBackendConfig().projectId })
         this.pageInit()
       },
       detached () {
-        wx.setStorageSync('dokit-mocklist', this.data.mockList)
-        wx.setStorageSync('dokit-tpllist', this.data.tplList)
+        wx.setStorageSync('dokit-mocklist:' + getBackendConfig().mockBaseUrl + ':' + this.data.projectId, this.data.mockList)
+        wx.setStorageSync('dokit-tpllist:' + getBackendConfig().mockBaseUrl + ':' + this.data.projectId, this.data.tplList)
       }
     },
     methods: {
@@ -42,6 +44,7 @@ Component({
             return new Promise((resolve, reject) => {
                 app.originRequest({
                     ...options,
+                    header: { ...(options.header || {}), "X-DoKit-Token": getBackendConfig().sdkToken },
                     success: res => resolve(res),
                     fail: err => reject(err)
                 })
@@ -53,7 +56,7 @@ Component({
         },
         getProjectId () {
             if (!this.data.projectId) {
-                console.warn("您还没有设置 projectId，去快平台端体验吧：https://www.dokit.cn")
+                console.warn("您还没有设置 projectId，去快平台端体验吧：https://dokit.example.internal")
                 return
             } else {
                 return this.data.projectId
@@ -63,7 +66,7 @@ Component({
         initList () {
             const that = this
             const opt = {
-                url: `${mockBaseUrl}/api/app/interface`,
+                url: `${getBackendConfig().mockBaseUrl}/api/app/interface`,
                 method: 'GET',
                 data: { projectId: this.getProjectId(), isfull: 1 }
             }
@@ -77,7 +80,7 @@ Component({
         },
         updateMockList (datalist) {
             let list = [], that = this
-            const localMockList = wx.getStorageSync('dokit-mocklist')
+            const localMockList = wx.getStorageSync('dokit-mocklist:' + getBackendConfig().mockBaseUrl + ':' + this.data.projectId)
             if (localMockList && localMockList.length) {
                 list = that.mergeMockList(datalist, localMockList)
             } else {
@@ -86,12 +89,12 @@ Component({
             that.setData({
                 mockList: list
             }, () => {
-                console.log('dokit-mocklist', that.data.mockList)
+                console.log('dokit-mocklist:' + getBackendConfig().mockBaseUrl + ':' + this.data.projectId, that.data.mockList)
             })
         },
         updateTplList (datalist) {
             let list = [], that = this
-            const localTplList = wx.getStorageSync('dokit-tpllist')
+            const localTplList = wx.getStorageSync('dokit-tpllist:' + getBackendConfig().mockBaseUrl + ':' + this.data.projectId)
             if (localTplList && localTplList.length) {
                 list = that.mergeTplList(datalist, localTplList)
             } else {
@@ -100,7 +103,7 @@ Component({
             that.setData({
                 tplList: list
             }, () => {
-                console.log('dokit-tpllist', that.data.tplList)
+                console.log('dokit-tpllist:' + getBackendConfig().mockBaseUrl + ':' + this.data.projectId, that.data.tplList)
             })
         },
         mergeMockList (datalist, localMockList) {
@@ -198,18 +201,20 @@ Component({
             const matchUrlRequest = this.matchUrlRequest.bind(this)
             const matchUrlTpl = this.matchUrlTpl.bind(this)
             wx.request = function (options) {
+                if (isBackendUrl(options.url)) return app.originRequest(options)
                 const opt = util.deepClone(options)
                 const originSuccessFn = options.success
                 const sceneId = matchUrlRequest(options)
                 if (sceneId) {
-                    options.url = `${mockBaseUrl}/api/app/scene/${sceneId}`
-                    console.group('request options', options)
+                    options.url = `${getBackendConfig().mockBaseUrl}/api/app/scene/${sceneId}`
+                    options.header = { ...(options.header || {}), "X-DoKit-Token": getBackendConfig().sdkToken }
                     console.warn('被拦截了~')
                 }
                 options.success = function (res) {
-                    originSuccessFn(matchUrlTpl(opt, res))
+                    const result = matchUrlTpl(opt, res)
+                    if (typeof originSuccessFn === "function") originSuccessFn(result)
                 }
-                app.originRequest(options)
+                return app.originRequest(options)
             }
         },
         onTabbar (event) {
@@ -252,7 +257,7 @@ Component({
                     that.data.tplList[i].templateData = res.data
                 }
             }
-            wx.setStorageSync('dokit-tpllist', that.data.tplList)
+            wx.setStorageSync('dokit-tpllist:' + getBackendConfig().mockBaseUrl + ':' + this.data.projectId, that.data.tplList)
             return res
         },
         uploadTplData () {
@@ -349,7 +354,7 @@ Component({
                 }
             }
             const opt = {
-                url: `${mockBaseUrl}/api/app/interface`,
+                url: `${getBackendConfig().mockBaseUrl}/api/app/interface`,
                 method: 'POST',
                 data
             }

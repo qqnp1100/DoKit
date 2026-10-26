@@ -90,6 +90,7 @@ object FileListAction {
         val dir = File(dirPath)
         if (FileUtils.isFileExists(dir) && FileUtils.isDir(dir)) {
             dir.listFiles()?.forEach { file ->
+                if (runCatching { FileManagerUtil.securePath(file.path) }.isFailure) return@forEach
                 val fileInfo = FileInfo(
                     FileManagerUtil.relativeRootPath(dirPath), file.name,
                     if (FileUtils.isDir(file)) {

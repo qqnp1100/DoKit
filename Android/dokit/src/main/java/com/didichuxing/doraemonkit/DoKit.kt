@@ -285,6 +285,9 @@ object DoKit {
         }
 
         fun build() {
+            com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.lock()
+            com.didichuxing.doraemonkit.kit.network.NetworkManager.refreshBackendConfig()
+            if (productId.isEmpty()) productId = com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.PROJECT_ID
             DoKitReal.install(app, mapKits, listKits, productId)
         }
     }

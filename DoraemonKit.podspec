@@ -39,8 +39,13 @@ iOS各式各样的工具集合
     ss.compiler_flags = '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-fvisibility=hidden'
   end
   
+  s.subspec 'Backend' do |ss|
+    ss.source_files = 'iOS/DoKit/Classes/Backend/*.{h,m}'
+  end
+
   s.subspec 'Foundation' do |ss|
-    ss.source_files = 'iOS/DoKit/Classes/Foundation/**/*.{h,m}'
+    ss.source_files = ['iOS/DoKit/Classes/Foundation/**/*.{h,m}']
+    ss.dependency 'DoraemonKit/Backend'
     # language-extension-token warning be used to implement Objective-C typeof().
     # ?: grammar
     ss.compiler_flags = '-Wall', '-Wextra', '-Werror'
@@ -73,7 +78,8 @@ iOS各式各样的工具集合
   end
 
   s.subspec 'Core' do |ss| 
-    ss.source_files = 'iOS/DoraemonKit/Src/Core/**/*.{h,m,c,mm}'
+    ss.source_files = ['iOS/DoraemonKit/Src/Core/**/*.{h,m,c,mm}']
+    ss.dependency 'DoraemonKit/Backend'
     ss.resource_bundle = {
       'DoraemonKit' => 'iOS/DoraemonKit/Resource/**/*'
     }

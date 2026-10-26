@@ -1,6 +1,7 @@
 - [简介](#简介)
 - [领域生态](#领域生态)
 - [使用手册](#使用手册)
+- [自定义后台配置](#自定义后台配置)
 - [更新日志](#更新日志)
 - [社区活动](#社区活动)
 - [开发背景](#开发背景)
@@ -54,6 +55,99 @@ DoKit诞生于滴滴城运服体验技术部，是一款面向泛前端产品研
 访问[DoKit官网](https://www.dokit.cn/)，点击"[使用中心](http://xingyun.xiaojukeji.com/docs/dokit/#/intro)"。
 
 **温馨提示：当前DoKit的所有功能都只针对Debug环境，Release环境未经过实际验证，所以请大家严格按照官方文档来集成，也不建议大家在Release环境上使用DoKit的任何功能。如果大家一定要在Release环境上使用，请自行进行充分的测试和验证，DoKit官方将不承担任何责任和损失。** 
+
+## 自定义后台配置
+
+本仓库支持在 SDK 初始化前指定自建 DoKit 后台、项目和 SDK 凭证。更换后台或项目后，请重启 App 或重载网页，避免已有缓存、请求和 WebSocket 会话混用。五端完整接入方式、构建顺序及验证范围见 [DoKit 五端自建后台接入](Doc/self-hosted-backend.md)。
+
+### 配置字段
+
+以下字段按各端已有能力使用，具体支持范围见对应平台的接入说明。
+
+| 字段 | 说明 |
+| --- | --- |
+| `platformBaseUrl` | 平台 HTTP 基址，例如 `https://dokit.example.com`；可带端口和 `/dokit` 等路径前缀，不要附加 `/api/app`。 |
+| `mockBaseUrl` | Mock HTTP 基址，通常与 `platformBaseUrl` 相同。 |
+| `resourceBaseUrl` | 自建后台发布的资源根地址。 |
+| `hybridJsUrl` | Android/iOS 注入的远程 `dokit.js` 完整地址，使用后台发布的只读资源地址。 |
+| `vConsoleUrl` | 注入的 `vconsole.min.js` 完整地址。 |
+| `webSocketUrl` | 控制台生成的完整短期配对 URL（`ws://` 或 `wss://`），须保留路径和 query。配置后需显式启动多控，也可通过扫码或手动入口传入新地址。 |
+| `projectId` | 控制台项目的 `legacyProjectId`。 |
+| `sdkToken` | 项目 SDK token，通过 HTTP `X-DoKit-Token` 请求头发送；与 WebSocket 配对凭证分别配置，不要使用管理员凭证。 |
+| `queryTimeoutMs` | Android、iOS 和 Web 的查询超时，默认 `8000` 毫秒，允许范围为 `100–60000` 毫秒。 |
+
+示例域名和 `YOUR_...` 均为占位值，请替换为实际配置。真实凭证应由宿主的私有配置提供，不要提交到仓库或发布到公共包源。
+
+### Android
+
+在 Debug 初始化路径中，先配置后台，再调用 `DoKit.Builder.build()`：
+
+```kotlin
+import com.didichuxing.doraemonkit.DoKit
+import com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig
+
+val backend = DoKitBackendConfig.Options().apply {
+    platformBaseUrl = "https://dokit.example.com"
+    mockBaseUrl = "https://dokit.example.com"
+    resourceBaseUrl = "https://dokit.example.com/resources"
+    hybridJsUrl = "" // 需要远程脚本时填写发布后的完整资源地址
+    vConsoleUrl = "" // 需要 vConsole 时填写完整资源地址
+    webSocketUrl = "" // 需要多控时填写控制台生成的完整配对 URL
+    projectId = "YOUR_LEGACY_PROJECT_ID"
+    sdkToken = "YOUR_PROJECT_SDK_TOKEN"
+    queryTimeoutMs = 8000L
+}
+DoKitBackendConfig.configure(backend)
+DoKit.Builder(application).build()
+```
+
+配置在 `build()` 时锁定；原有 `.productId(...)` 的非空显式值优先于配置中的 `projectId`。Android 的字符串字段传 `null`、空字符串或纯空白会清空该配置，空地址会停用对应后台请求或远程注入；`queryTimeoutMs = null` 使用默认超时。Release 继续使用 `dokit-no-op`，不要在 Release 代码中引用仅存在于 Debug 完整 SDK 的配置类。
+
+接入 `dokit-mc` 后，可调用 `MultiControlManager.startConfiguredClientMode()` 或 `startConfiguredHostMode()` 使用配置的配对地址连接；地址为空时不启动连接。
+
+仓库内的 Android Demo 已支持从仓库根目录的 `dokit-backend.local.json` 读取以下配置，仅注入 Debug 的 `BuildConfig`。该文件已被 Git 忽略，修改后需重新构建并安装 Debug APK：
+
+```json
+{
+  "platformBaseUrl": "https://dokit.example.com",
+  "mockBaseUrl": "https://dokit.example.com",
+  "resourceBaseUrl": "https://dokit.example.com/resources",
+  "hybridJsUrl": "",
+  "vConsoleUrl": "",
+  "webSocketUrl": "",
+  "projectId": "YOUR_LEGACY_PROJECT_ID",
+  "sdkToken": "YOUR_PROJECT_SDK_TOKEN"
+}
+```
+
+### Web
+
+在加载本仓库构建的 `dokit.js` **之前**设置：
+
+```javascript
+window.DOKIT_CONFIG = {
+  platformBaseUrl: 'https://dokit.example.com',
+  mockBaseUrl: 'https://dokit.example.com',
+  resourceBaseUrl: 'https://dokit.example.com/resources',
+  webSocketUrl: '', // 需要多控时填写完整配对 URL
+  projectId: 'YOUR_LEGACY_PROJECT_ID',
+  sdkToken: 'YOUR_PROJECT_SDK_TOKEN',
+  queryTimeoutMs: 8000,
+};
+```
+
+SDK 加载后会使用配置的项目初始化 Mock。也可在加载后调用 `window.Dokit.configureBackend({...})`，但必须早于 `setProductId(...)`；传入 `projectId` 时会自动设置项目。需要多控时调用 `window.Dokit.startMultiControl(undefined, 'client')`。
+
+宿主的 CSP/CORS 配置需允许实际使用的 HTTP、WebSocket 和资源地址，以及 `X-DoKit-Token` 请求头。SDK token 仅附加到配置范围内的后台请求。
+
+### iOS、微信小程序和 Flutter
+
+| 平台 | 配置入口与支持范围 |
+| --- | --- |
+| [iOS](Doc/self-hosted-backend.md#ios) | 在 `[[DoraemonManager shareInstance] install]` 前调用 `DoraemonBackendConfigure(@{...})`；需要多控时显式调用 `enableMultiControlWithBackend`。 |
+| [微信小程序](Doc/self-hosted-backend.md#微信小程序) | 在首次打开 Mock 组件前调用 `dist/utils/backend` 的 `configureBackend({...})`，或提供 `App({ dokitBackend: {...} })`；支持已有 Mock/模板功能。请求域名需在微信后台登记。 |
+| [Flutter](Doc/self-hosted-backend.md#flutter) | 向 `DoKit.runApp` 传入 `backend: DoKitBackendConfig(...)`，支持 `platformBaseUrl`、`projectId`、`sdkToken`；也可通过 `--dart-define` 提供 `DOKIT_PLATFORM_URL`、`DOKIT_PROJECT_ID`、`DOKIT_SDK_TOKEN`。当前仅接入已有启动统计。 |
+
 ## 更新日志
 
 - [Android-ReleaseNotes](http://xingyun.xiaojukeji.com/docs/dokit/#/AndroidReleaseNote)

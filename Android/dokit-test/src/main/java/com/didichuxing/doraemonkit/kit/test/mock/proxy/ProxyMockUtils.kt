@@ -29,15 +29,12 @@ object ProxyMockUtils {
     }
 
     fun parseHeaders(headers: String): Headers {
-        val map = mutableMapOf<String, String>()
-        val values = headers.split("\n")
-        values.forEach {
-            val e = it.split(": ")
-            if (e.size >= 2) {
-                map[e[0]] = e[1]
-            }
+        val builder = Headers.Builder()
+        headers.lineSequence().forEach { line ->
+            val separator = line.indexOf(':')
+            if (separator > 0) builder.add(line.substring(0, separator).trim(), line.substring(separator + 1).trim())
         }
-        return map.toHeaders()
+        return builder.build()
     }
 
     fun createProxyRequest(did: String, request: Request): ProxyRequest {
@@ -97,11 +94,7 @@ object ProxyMockUtils {
     fun filterRequest(request: Request): Boolean {
         val scheme = request.url.scheme
         val host = request.url.host
-        if (host.equals(NetworkManager.MOCK_HOST, ignoreCase = true)) {
-            return true
-        } else if (host.equals(NetworkManager.DOKIT_HOST, ignoreCase = true)) {
-            return true
-        }
+        if (com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.isPlatformUrl(request.url.toString())) return true
         val wsKey: String? = request.header("Sec-WebSocket-Key")
         val wsVersion: String? = request.header("Sec-WebSocket-Version")
         if (wsKey != null && wsVersion != null) {

@@ -1,3 +1,4 @@
+#import "DoraemonBackendConfig.h"
 /**
  * Copyright 2017 Beijing DiDi Infinity Technology and Development Co., Ltd.
  *
@@ -134,6 +135,14 @@ NS_ASSUME_NONNULL_END
     }
     completionHandlerDictionary[@(requestId)] = webSocketCompletionHandler;
     self.completionHandlerDictionary = completionHandlerDictionary;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)([DoraemonBackendValue(@"queryTimeoutMs") longLongValue] * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
+        DKWebSocketCompletionHandler pending = self.completionHandlerDictionary[@(requestId)];
+        if (!pending) return;
+        NSMutableDictionary *remaining = self.completionHandlerDictionary.mutableCopy;
+        [remaining removeObjectForKey:@(requestId)];
+        self.completionHandlerDictionary = remaining;
+        pending([NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorTimedOut userInfo:nil], nil);
+    });
 }
 
 - (BOOL)isWebSocketRunning {
@@ -151,7 +160,7 @@ NS_ASSUME_NONNULL_END
 
 - (instancetype)initWithUrl:(NSURL *)url {
     self = [super init];
-    _url = url.copy;
+    _url = url.copy ?: [NSURL URLWithString:DoraemonBackendValue(@"webSocketUrl")];
     _isDeviceAuthenticating = NO;
     _requestId = 0;
     id webSocketSession = [NSUserDefaults.standardUserDefaults objectForKey:DOKIT_WEBSOCKET_SESSION];
@@ -248,7 +257,7 @@ NS_ASSUME_NONNULL_END
         return;
     }
     DKCommonDTOModel *commonDTOModel = [MTLJSONAdapter modelOfClass:DKCommonDTOModel.class fromJSONDictionary:jsonObject error:&error];
-    if ([commonDTOModel.method isEqualToString:DK_WEBSOCKET_BROADCAST]) {
+    if ([commonDTOModel.method isEqualToString:DK_WEBSOCKET_BROADCAST] || [commonDTOModel.method isEqualToString:@"NOTIFY"]) {
         self.notifyHandler ? self.notifyHandler(commonDTOModel) : (void) nil;
     } else if (commonDTOModel.requestId) {
         DKWebSocketCompletionHandler webSocketCompletionHandler = self.completionHandlerDictionary[commonDTOModel.requestId];
@@ -260,7 +269,9 @@ NS_ASSUME_NONNULL_END
                 completionHandlerDictionary = nil;
             }
             self.completionHandlerDictionary = completionHandlerDictionary;
-            webSocketCompletionHandler(nil, commonDTOModel.data);
+            NSInteger status = [jsonObject[@"code"] integerValue];
+            NSError *failure = (status != 0 && status != 200) ? [NSError errorWithDomain:@"DoKitGateway" code:status userInfo:nil] : nil;
+            webSocketCompletionHandler(failure, commonDTOModel.data);
         }
     }
 }

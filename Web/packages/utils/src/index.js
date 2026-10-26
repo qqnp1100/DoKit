@@ -7,3 +7,5 @@ export * from './md5'
 
 // import request from './network'
 export * from './network'
+
+export * from './backend'

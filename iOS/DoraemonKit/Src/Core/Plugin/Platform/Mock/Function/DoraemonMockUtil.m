@@ -1,3 +1,5 @@
+#import "DoraemonManager.h"
+#import "DoraemonBackendConfig.h"
 //
 //  DoraemonMockUtil.m
 //  DoraemonKit
@@ -112,7 +114,7 @@
 
 - (void)saveArray:(NSArray *)dataArray toFile:(NSString *)fileName{
     NSString *cachesDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
-    NSString *anrDir = [cachesDir stringByAppendingPathComponent:@"DoraemonMockCache"];
+    NSString *anrDir = [cachesDir stringByAppendingPathComponent:[NSString stringWithFormat:@"DoraemonMockCache/%@/%@", [([DoraemonManager shareInstance].mockDomain ?: DoraemonBackendMockDomain()) stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.alphanumericCharacterSet], [([DoraemonManager shareInstance].pId ?: @"") stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.alphanumericCharacterSet]]];
     NSFileManager *fileManager = [NSFileManager defaultManager];
     BOOL isDir = NO;
     BOOL existed = [fileManager fileExistsAtPath:anrDir isDirectory:&isDir];
@@ -130,7 +132,7 @@
 - (NSArray *)getArrayFromFile:(NSString *)fileName{
     NSArray *dataArray;
     NSString *cachesDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
-    NSString *anrDir = [cachesDir stringByAppendingPathComponent:@"DoraemonMockCache"];
+    NSString *anrDir = [cachesDir stringByAppendingPathComponent:[NSString stringWithFormat:@"DoraemonMockCache/%@/%@", [([DoraemonManager shareInstance].mockDomain ?: DoraemonBackendMockDomain()) stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.alphanumericCharacterSet], [([DoraemonManager shareInstance].pId ?: @"") stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.alphanumericCharacterSet]]];
     NSFileManager *fileManager = [NSFileManager defaultManager];
     BOOL isDir = NO;
     BOOL existed = [fileManager fileExistsAtPath:anrDir isDirectory:&isDir];

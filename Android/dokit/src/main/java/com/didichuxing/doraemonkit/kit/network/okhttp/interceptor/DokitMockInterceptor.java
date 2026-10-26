@@ -40,23 +40,19 @@ import okhttp3.ResponseBody;
 public class DokitMockInterceptor extends AbsDoKitInterceptor {
 
 
+    private final okhttp3.OkHttpClient platformClient = com.didichuxing.doraemonkit.aop.OkHttpHook.buildWithoutHook(
+            new okhttp3.OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
+            .connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(8, java.util.concurrent.TimeUnit.SECONDS));
+
     @NonNull
     @Override
     public Response intercept(Chain chain) throws IOException {
         Request oldRequest = chain.request();
-        Response oldResponse = chain.proceed(oldRequest);
-        String contentType = oldResponse.header("Content-Type");
-        //如果是图片则不进行拦截
-        if (InterceptorUtil.isImg(contentType)) {
-            return oldResponse;
-        }
         HttpUrl url = oldRequest.url();
-        String host = url.host();
-        //如果是mock平台的接口则不进行拦截
-        if (host.equalsIgnoreCase(NetworkManager.MOCK_HOST)) {
-            return oldResponse;
+        if (com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.isPlatformUrl(url.toString())) {
+            return chain.proceed(oldRequest);
         }
-
         //path  /test/upload/img
         String path = URLDecoder.decode(url.encodedPath(), "utf-8");
         String queries = url.query();
@@ -66,23 +62,32 @@ public class DokitMockInterceptor extends AbsDoKitInterceptor {
         //LogHelper.i(TAG, "realJsonRequestBody===>" + jsonRequestBody);
         String interceptMatchedId = DokitDbManager.getInstance().isMockMatched(path, jsonQuery, jsonRequestBody, DokitDbManager.MOCK_API_INTERCEPT, DokitDbManager.FROM_SDK_OTHER);
         String templateMatchedId = DokitDbManager.getInstance().isMockMatched(path, jsonQuery, jsonRequestBody, DokitDbManager.MOCK_API_TEMPLATE, DokitDbManager.FROM_SDK_OTHER);
-        try {
-            //网络的健康体检功能 统计流量大小
-            if (DoKitManager.APP_HEALTH_RUNNING) {
-                addNetWokInfoInAppHealth(oldRequest, oldResponse);
+        // Resolve a selected mock before sending the real request (which may mutate business data).
+        if (!TextUtils.isEmpty(NetworkManager.MOCK_DOMAIN) && !TextUtils.isEmpty(interceptMatchedId)) {
+            MockInterceptApiBean api = (MockInterceptApiBean) DokitDbManager.getInstance()
+                    .getInterceptApiByIdInMap(path, interceptMatchedId, DokitDbManager.FROM_SDK_OTHER);
+            if (api != null && api.isOpen() && !TextUtils.isEmpty(api.getSelectedSceneId())) {
+                try {
+                    String sceneUrl = NetworkManager.MOCK_DOMAIN + "/api/app/scene/" +
+                            android.net.Uri.encode(api.getSelectedSceneId());
+                    Response mockResponse = platformClient.newCall(new Request.Builder().url(sceneUrl).header("X-DoKit-Token", com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.SDK_TOKEN).get().build()).execute();
+                    try {
+                        if (DoKitManager.APP_HEALTH_RUNNING) addNetWokInfoInAppHealth(oldRequest, mockResponse);
+                        matchedTemplateRule(mockResponse, path, templateMatchedId);
+                    }
+                    catch (Exception cacheError) { LogHelper.e(getTAG(), cacheError.toString()); }
+                    return mockResponse.newBuilder().request(oldRequest).build();
+                } catch (IOException unavailable) {
+                    // Transport failure falls through exactly once; HTTP error scenes are valid mock data.
+                    LogHelper.e(getTAG(), unavailable.toString());
+                }
             }
-
-            //是否命中拦截规则
-            if (!TextUtils.isEmpty(interceptMatchedId)) {
-                return matchedInterceptRule(url, path, interceptMatchedId, templateMatchedId, oldRequest, oldResponse, chain);
-            }
-
-            //是否命中模板规则
-            matchedTemplateRule(oldResponse, path, templateMatchedId);
-
-        } catch (Exception e) {
-            e.printStackTrace();
         }
+        Response oldResponse = chain.proceed(oldRequest);
+        try {
+            if (DoKitManager.APP_HEALTH_RUNNING) addNetWokInfoInAppHealth(oldRequest, oldResponse);
+            matchedTemplateRule(oldResponse, path, templateMatchedId);
+        } catch (Exception error) { LogHelper.e(getTAG(), error.toString()); }
         return oldResponse;
     }
 
@@ -238,60 +243,6 @@ public class DokitMockInterceptor extends AbsDoKitInterceptor {
      * @param interceptMatchedId
      * @return
      */
-    private Response matchedInterceptRule(HttpUrl url, String path, String interceptMatchedId, String templateMatchedId, Request oldRequest, Response oldResponse, Chain chain) throws Exception {
-        //判断是否需要重定向数据接口
-        //http https
-        String scheme = url.scheme();
-        MockInterceptApiBean interceptApiBean = (MockInterceptApiBean) DokitDbManager.getInstance().getInterceptApiByIdInMap(path, interceptMatchedId, DokitDbManager.FROM_SDK_OTHER);
-        if (interceptApiBean == null) {
-            matchedTemplateRule(oldResponse, path, templateMatchedId);
-            return oldResponse;
-        }
-        String selectedSceneId = interceptApiBean.getSelectedSceneId();
-        //开关是否被打开
-        if (!interceptApiBean.isOpen()) {
-            matchedTemplateRule(oldResponse, path, templateMatchedId);
-            return oldResponse;
-        }
-
-        //判断是否有选中的场景
-        if (TextUtils.isEmpty(selectedSceneId)) {
-            matchedTemplateRule(oldResponse, path, templateMatchedId);
-            return oldResponse;
-        }
-        StringBuilder sb = new StringBuilder();
-        String newUrl;
-        if (NetworkManager.MOCK_SCHEME_HTTP.contains(scheme.toLowerCase())) {
-            newUrl = sb.append(NetworkManager.MOCK_SCHEME_HTTP).append(NetworkManager.MOCK_HOST).append("/api/app/scene/").append(selectedSceneId).toString();
-        } else {
-            newUrl = sb.append(NetworkManager.MOCK_SCHEME_HTTPS).append(NetworkManager.MOCK_HOST).append("/api/app/scene/").append(selectedSceneId).toString();
-        }
-
-        //LogHelper.i("MOCK_INTERCEPT", "path===>" + path + "  newUrl=====>" + newUrl);
-
-        Request newRequest = new Request.Builder()
-                .method("GET", null)
-                .url(newUrl).build();
-        //需要提前关闭数据流 不然在某些场景下会报错
-        oldResponse.close();
-        Response newResponse = chain.proceed(newRequest);
-        if (newResponse.code() == 200) {
-            //拦截命中提示
-            ToastUtils.showShort("接口别名:==" + interceptApiBean.getMockApiName() + "==已被拦截");
-            //判断新的response是否有数据
-            if (newResponseHasData(newResponse)) {
-                matchedTemplateRule(newResponse, path, templateMatchedId);
-                return newResponse;
-            } else {
-                matchedTemplateRule(oldResponse, path, templateMatchedId);
-                return oldResponse;
-            }
-
-        }
-        matchedTemplateRule(oldResponse, path, templateMatchedId);
-        return oldResponse;
-    }
-
     /**
      * 命中模板规则
      * 保存正常接口的response到数据库

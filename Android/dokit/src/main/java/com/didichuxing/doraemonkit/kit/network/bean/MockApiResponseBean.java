@@ -90,7 +90,8 @@ public class MockApiResponseBean {
             private CurStatusBean curStatus;
             private String createDate;
             private String categoryName;
-            //private QueryBean query;
+            private com.google.gson.JsonObject query;
+            private com.google.gson.JsonObject body;
             private List<SceneListBean> sceneList;
 
             public String get_id() {

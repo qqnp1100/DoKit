@@ -1,3 +1,4 @@
+#import "DoraemonBackendConfig.h"
 //
 //  DoraemonManager.m
 //  DoraemonKit
@@ -123,6 +124,9 @@ typedef void (^DoraemonPerformanceBlock)(NSDictionary *);
 }
 
 - (void)installWithCustomBlock:(void(^)(void))customBlock{
+    if (!self.pId.length) self.pId = DoraemonBackendValue(@"projectId");
+    if (!self.mockDomain.length) self.mockDomain = DoraemonBackendMockDomain();
+    DoraemonBackendLock();
     //保证install只执行一次
     if (_hasInstall) {
         return;

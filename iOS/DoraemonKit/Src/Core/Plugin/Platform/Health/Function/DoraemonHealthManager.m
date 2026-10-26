@@ -1,3 +1,4 @@
+#import "DoraemonBackendConfig.h"
 //
 //  DoraemonHealthManager.m
 //  DoraemonKit
@@ -255,7 +256,7 @@
             DoKitLog(@"dokik pId empty");
         }
 
-        [DoraemonNetworkUtil postWithUrlString:@"https://www.dokit.cn/healthCheck/addCheckData" params:dic success:^(NSDictionary * _Nonnull result) {
+        [DoraemonNetworkUtil postWithUrlString:DoraemonBackendPlatformURL(@"/healthCheck/addCheckData") params:dic success:^(NSDictionary * _Nonnull result) {
             NSInteger code = [result[@"code"] integerValue];
             if (code == 200) {
                 [DoraemonToastUtil showToastBlack:DoraemonLocalizedString(@"数据上传成功")  inView:[UIViewController rootViewControllerForDoraemonHomeWindow].view];

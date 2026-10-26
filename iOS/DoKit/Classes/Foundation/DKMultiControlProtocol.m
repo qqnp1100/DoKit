@@ -1,3 +1,4 @@
+#import <DoraemonKit/DoraemonBackendConfig.h>
 /**
  * Copyright 2017 Beijing DiDi Infinity Technology and Development Co., Ltd.
  *
@@ -31,7 +32,7 @@ static NSString *const MULTI_CONTROL_PROTOCOL_KEY = @"MULTI_CONTROL_PROTOCOL_KEY
 
 @property(nonatomic, nullable, copy) NSHTTPURLResponse *httpUrlResponse;
 
-@property(nonatomic, nullable, copy) NSString *responseBody;
+@property(nonatomic, strong) NSMutableData *responseData;
 
 @end
 
@@ -40,6 +41,7 @@ NS_ASSUME_NONNULL_END
 @implementation DKMultiControlProtocol
 
 + (BOOL)canInitWithRequest:(NSURLRequest *)request {
+    if (DoraemonBackendOwnURL(request.URL)) return NO;
     // +[NSURLProtocol canInitWithRequest:] may be called from any thread.
     BOOL returnValue = NO;
     switch (DKMultiControlStreamManager.sharedInstance.state) {
@@ -75,6 +77,7 @@ NS_ASSUME_NONNULL_END
 }
 
 - (void)startLoading {
+    self.responseData = [NSMutableData data];
     NSOperationQueue *clientOperationQueue = [[NSOperationQueue alloc] init];
     clientOperationQueue.maxConcurrentOperationCount = 1;
     if ([NSURLProtocol propertyForKey:MULTI_CONTROL_PROTOCOL_KEY inRequest:self.request]) {
@@ -125,17 +128,11 @@ NS_ASSUME_NONNULL_END
 
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data {
     [self.client URLProtocol:self didLoadData:data];
-    // TODO(ChasonTang): Append data to `self.responseData`.
-    self.responseBody = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    [self.responseData appendData:data];
 }
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler {
-    if (challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust) {
-        NSURLCredential *urlCredential = challenge.protectionSpace.serverTrust ? [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust] : nil;
-        completionHandler(NSURLSessionAuthChallengeUseCredential, urlCredential);
-    } else {
-        completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
-    }
+    completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
 }
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
@@ -144,7 +141,7 @@ NS_ASSUME_NONNULL_END
         if (self.httpUrlResponse && self.dataId) {
             NSHTTPURLResponse *httpUrlResponse = self.httpUrlResponse.copy;
             NSString *dataId = self.dataId.copy;
-            NSString *responseBody = self.responseBody.copy;
+            NSString *responseBody = [[NSString alloc] initWithData:self.responseData encoding:NSUTF8StringEncoding];
             dispatch_async(dispatch_get_main_queue(), ^{
                 [DKMultiControlStreamManager.sharedInstance recordWithHTTPUrlResponse:httpUrlResponse dataId:dataId responseBody:responseBody];
             });

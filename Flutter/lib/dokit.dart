@@ -7,6 +7,9 @@
 // Modified by linusflow on 2021/5/12 下午3:47
 //
 
+import 'dokit_backend.dart';
+export 'dokit_backend.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:core';
@@ -28,6 +31,8 @@ import 'kit/biz/biz.dart';
 
 export 'package:dokit/ui/dokit_app.dart';
 
+DoKitBackendConfig _backend = const DoKitBackendConfig();
+
 typedef DoKitAppCreator = Future<IDoKitApp> Function();
 typedef LogCallback = void Function(String);
 typedef ExceptionCallback = void Function(dynamic, StackTrace);
@@ -46,6 +51,7 @@ class DoKit {
   // 初始化方法,app或者appCreator必须设置一个
   static Future<void> runApp(
       {DoKitApp? app,
+      DoKitBackendConfig backend = const DoKitBackendConfig(),
       bool useRunZoned = true,
       DoKitAppCreator? appCreator,
       bool useInRelease = false,
@@ -53,6 +59,8 @@ class DoKit {
       ExceptionCallback? exceptionCallback,
       List<String> methodChannelBlackList = const <String>[],
       Function? releaseAction}) async {
+    backend.startupUri; // Validate before starting asynchronous telemetry.
+    _backend = backend;
     // 统计用户信息，便于了解该开源产品的使用量 (请大家放心，我们不用于任何恶意行为)
     upLoadUserInfo();
 
@@ -224,72 +232,82 @@ void dispose({required BuildContext context}) {
 }
 
 void upLoadUserInfo() async {
-  final client = HttpClient();
-  const url = 'https://doraemon.xiaojukeji.com/uploadAppData';
-  final request = await client.postUrl(Uri.parse(url));
-  final packageInfo = await PackageInfo.fromPlatform();
+  final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+  try {
+    final url = _backend.startupUri;
+    final request = await client.postUrl(url);
+    request.followRedirects = false;
+    final token = _backend.sdkToken;
+    if (token.isNotEmpty) request.headers.set('X-DoKit-Token', token);
+    final packageInfo = await PackageInfo.fromPlatform();
 
-  Locale? locale;
-  void finder(Element element) {
-    if (element.widget is Localizations) {
-      locale ??= (element.widget as Localizations).locale;
+    Locale? locale;
+    void finder(Element element) {
+      if (element.widget is Localizations) {
+        locale ??= (element.widget as Localizations).locale;
+      } else {
+        element.visitChildren(finder);
+      }
+    }
+
+    DoKitApp.appKey.currentContext?.visitChildElements(finder);
+
+    final appId = packageInfo.packageName;
+    // 在iOS上可能获取不到appName
+    // https://github.com/flutter/flutter/issues/42510
+    // 当info.plist文件中只有CFBundleName，没有CFBundleDisplayName时，则无法获取
+    final appName =
+        packageInfo.appName.isEmpty ? 'DoKitFlutterDefault' : packageInfo.appName;
+    final appVersion = packageInfo.version;
+    final version = DK_PACKAGE_VERSION;
+    final from = '1';
+    var type = 'flutter_';
+    if (Platform.isIOS) {
+      type += 'iOS';
+    } else if (Platform.isAndroid) {
+      type += 'android';
     } else {
-      element.visitChildren(finder);
+      type += 'other';
     }
-  }
+    final language = locale?.toString() ?? '';
+    final playload = <String, dynamic>{};
+    await VMServiceWrapper.instance
+        .callExtensionService('flutterVersion')
+        .then((value) {
+      if (value != null) {
+        final flutter = FlutterVersion.parse(value.json);
+        playload['flutter_version'] = flutter.version;
+        playload['dart_sdk_version'] = flutter.dartSdkVersion;
+        type +=
+            '-flutter_version_${flutter.version}-dart_sdk_version_${flutter.dartSdkVersion}';
+      }
+    });
 
-  DoKitApp.appKey.currentContext?.visitChildElements(finder);
+    final params = <String, dynamic>{};
+    params['appId'] = appId;
+    if (_backend.projectId.isNotEmpty) params['projectId'] = _backend.projectId;
+    params['appName'] = appName;
+    params['appVersion'] = appVersion;
+    params['version'] = version;
+    params['from'] = from;
+    params['type'] = type;
+    params['language'] = language;
+    params['playload'] = playload;
 
-  final appId = packageInfo.packageName;
-  // 在iOS上可能获取不到appName
-  // https://github.com/flutter/flutter/issues/42510
-  // 当info.plist文件中只有CFBundleName，没有CFBundleDisplayName时，则无法获取
-  final appName =
-      packageInfo.appName.isEmpty ? 'DoKitFlutterDefault' : packageInfo.appName;
-  final appVersion = packageInfo.version;
-  final version = DK_PACKAGE_VERSION;
-  final from = '1';
-  var type = 'flutter_';
-  if (Platform.isIOS) {
-    type += 'iOS';
-  } else if (Platform.isAndroid) {
-    type += 'android';
-  } else {
-    type += 'other';
-  }
-  final language = locale?.toString() ?? '';
-  final playload = <String, dynamic>{};
-  await VMServiceWrapper.instance
-      .callExtensionService('flutterVersion')
-      .then((value) {
-    if (value != null) {
-      final flutter = FlutterVersion.parse(value.json);
-      playload['flutter_version'] = flutter.version;
-      playload['dart_sdk_version'] = flutter.dartSdkVersion;
-      type +=
-          '-flutter_version_${flutter.version}-dart_sdk_version_${flutter.dartSdkVersion}';
+    request.headers
+      ..add('Content-Type', 'application/json')
+      ..add('Accept', 'application/json');
+    request.add(utf8.encode(json.encode(params)));
+
+    final response = await request.close().timeout(const Duration(seconds: 8));
+    await response.drain<void>().timeout(const Duration(seconds: 8));
+  //  final responseBody = await response.transform(utf8.decoder).join();
+    if (response.statusCode == HttpStatus.ok) {
+  //    print('用户统计数据上报成功！');
     }
-  });
-
-  final params = <String, dynamic>{};
-  params['appId'] = appId;
-  params['appName'] = appName;
-  params['appVersion'] = appVersion;
-  params['version'] = version;
-  params['from'] = from;
-  params['type'] = type;
-  params['language'] = language;
-  params['playload'] = playload;
-
-  request.headers
-    ..add('Content-Type', 'application/json')
-    ..add('Accept', 'application/json');
-  request.add(utf8.encode(json.encode(params)));
-
-  final response = await request.close();
-//  final responseBody = await response.transform(utf8.decoder).join();
-  if (response.statusCode == HttpStatus.ok) {
-//    print('用户统计数据上报成功！');
+  } catch (error) {
+    debugPrint("DoKit startup statistics unavailable: $error");
+  } finally {
+    client.close(force: true);
   }
-  client.close();
 }

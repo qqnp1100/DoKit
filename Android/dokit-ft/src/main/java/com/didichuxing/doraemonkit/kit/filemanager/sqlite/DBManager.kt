@@ -202,7 +202,7 @@ object DBManager {
                         val columnName = it.getColumnName(index)
                         when (columnName) {
                             "name" -> tableFieldInfo.title = it.getString(index)
-                            "pk" -> tableFieldInfo.isPrimary = cursor.getInt(index) == 1
+                            "pk" -> tableFieldInfo.isPrimary = cursor.getInt(index) > 0
                         }
                     }
                     tableFields.add(tableFieldInfo)

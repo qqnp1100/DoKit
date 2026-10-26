@@ -1,3 +1,4 @@
+import { configureBackend, getBackendConfig, lockBackendConfig } from '@dokit/web-utils';
 import {
   createApp
 } from 'vue'
@@ -39,6 +40,8 @@ export class Dokit {
     this.app = app;
     this.init();
     this.onLoad();
+    if (getBackendConfig().projectId) this.setProductId(getBackendConfig().projectId);
+    Store.state.socketUrl = getBackendConfig().webSocketUrl;
   }
 
   onLoad() {
@@ -66,7 +69,17 @@ export class Dokit {
     dokitRoot.appendChild(el)
   }
 
+  configureBackend(options) {
+    const config = configureBackend(options);
+    Store.state.socketUrl = config.webSocketUrl;
+    if (config.projectId) this.setProductId(config.projectId);
+    return this;
+  }
+
   setProductId(productId) {
+    if (this.productId && this.productId !== productId) throw new Error('Reload DoKit to change project');
+    if (this.productId === productId) return;
+    lockBackendConfig();
     this.productId = productId
     Store.state.productId = productId
     this.onProductReady()
@@ -74,8 +87,10 @@ export class Dokit {
 
   startMultiControl(url, role) {
     if(role==='client'||role==='host') {
+      const socketUrl = url || getBackendConfig().webSocketUrl;
+      if (!socketUrl || !socketUrl.trim()) return;
       role === 'host'&&(Store.state.isHost = true);
-      Store.state.socketUrl = url;
+      Store.state.socketUrl = socketUrl;
       Store.state.socketConnect = true;
     }
   }

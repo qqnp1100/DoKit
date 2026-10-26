@@ -102,7 +102,7 @@ val DoKitFileRouter: Application.() -> Unit = {
             val dirPath = FileManagerUtil.absoluteRootPath(queryParameters["dirPath"])
 //            val fileType = queryParameters["fileType"]
             val fileName = queryParameters["fileName"]
-            val filePath = "$dirPath$fileName"
+            val filePath = FileManagerUtil.childPath(dirPath, fileName)
             call.respond(FileDetailAction.fileDetailInfoRes(filePath))
         }
 
@@ -132,7 +132,7 @@ val DoKitFileRouter: Application.() -> Unit = {
             val dirPath = FileManagerUtil.absoluteRootPath(queryParameters["dirPath"])
             val fileName = queryParameters["fileName"]
 
-            val file = File("$dirPath${File.separator}$fileName")
+            val file = File(FileManagerUtil.childPath(dirPath, fileName))
             if (FileUtils.isFileExists(file)) {
                 //call.response.header("Content-Disposition", "attachment; filename=\"${file.name}\"")
                 call.respondFile(file)
@@ -152,7 +152,7 @@ val DoKitFileRouter: Application.() -> Unit = {
             val params = call.receive<DirInfo>()
             val dirPath = FileManagerUtil.absoluteRootPath(params.dirPath)
             val fileName = params.fileName
-            val filePath = "$dirPath$fileName"
+            val filePath = FileManagerUtil.childPath(dirPath, fileName)
             call.respond(DeleteFileAction.deleteFileRes(filePath, dirPath, fileName))
         }
 
@@ -163,7 +163,7 @@ val DoKitFileRouter: Application.() -> Unit = {
             val fileInfo = call.receive<RenameFileInfo>()
             val dirPath = FileManagerUtil.absoluteRootPath(fileInfo.dirPath)
             val oldName = fileInfo.oldName
-            val filePath = "$dirPath$oldName"
+            val filePath = FileManagerUtil.childPath(dirPath, oldName)
             call.respond(RenameFileAction.renameFileRes(fileInfo.newName, filePath))
         }
 
@@ -176,7 +176,7 @@ val DoKitFileRouter: Application.() -> Unit = {
             val dirPath = FileManagerUtil.absoluteRootPath(saveFileInfo.dirPath)
             val fileName = saveFileInfo.fileName
             val content = saveFileInfo.content
-            val filePath = "$dirPath$fileName"
+            val filePath = FileManagerUtil.childPath(dirPath, fileName)
             call.respond(SaveFileAction.saveFileRes(content, filePath))
         }
 
@@ -188,7 +188,7 @@ val DoKitFileRouter: Application.() -> Unit = {
             val queryParameters = call.request.queryParameters
             val dirPath = FileManagerUtil.absoluteRootPath(queryParameters["dirPath"])
             val fileName = queryParameters["fileName"]
-            val filePath = "$dirPath$fileName"
+            val filePath = FileManagerUtil.childPath(dirPath, fileName)
             call.respond(DatabaseAction.allTablesRes(filePath, fileName!!))
         }
 
@@ -200,7 +200,7 @@ val DoKitFileRouter: Application.() -> Unit = {
             val dirPath = FileManagerUtil.absoluteRootPath(queryParameters["dirPath"])
             val fileName = queryParameters["fileName"]
             val tableName = queryParameters["tableName"]
-            val filePath = "$dirPath$fileName"
+            val filePath = FileManagerUtil.childPath(dirPath, fileName)
             call.respond(DatabaseAction.tableDatasRes(filePath, fileName!!, tableName!!))
         }
 
@@ -212,7 +212,7 @@ val DoKitFileRouter: Application.() -> Unit = {
             val dirPath = FileManagerUtil.absoluteRootPath(rowRequestInfo.dirPath)
             val fileName = rowRequestInfo.fileName
             val tableName = rowRequestInfo.tableName
-            val filePath = "$dirPath$fileName"
+            val filePath = FileManagerUtil.childPath(dirPath, fileName)
             val rowDatas = rowRequestInfo.rowDatas
             call.respond(DatabaseAction.insertRowRes(filePath, fileName, tableName, rowDatas))
         }
@@ -225,7 +225,7 @@ val DoKitFileRouter: Application.() -> Unit = {
             val dirPath = FileManagerUtil.absoluteRootPath(rowRequestInfo.dirPath)
             val fileName = rowRequestInfo.fileName
             val tableName = rowRequestInfo.tableName
-            val filePath = "$dirPath$fileName"
+            val filePath = FileManagerUtil.childPath(dirPath, fileName)
             val rowDatas = rowRequestInfo.rowDatas
             call.respond(DatabaseAction.updateRowRes(filePath, fileName, tableName, rowDatas))
         }
@@ -238,7 +238,7 @@ val DoKitFileRouter: Application.() -> Unit = {
             val dirPath = FileManagerUtil.absoluteRootPath(rowRequestInfo.dirPath)
             val fileName = rowRequestInfo.fileName
             val tableName = rowRequestInfo.tableName
-            val filePath = "$dirPath$fileName"
+            val filePath = FileManagerUtil.childPath(dirPath, fileName)
             val rowDatas = rowRequestInfo.rowDatas
             call.respond(DatabaseAction.deleteRowRes(filePath, fileName, tableName, rowDatas))
         }

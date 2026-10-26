@@ -1,3 +1,5 @@
+#import "DoraemonNetworkUtil.h"
+#import "DoraemonBackendConfig.h"
 //
 //  DoraemonSettingViewController.m
 //  DoraemonKit
@@ -42,9 +44,11 @@
 - (void)loadData {
     
     WEAKSELF(weakSelf)
-    NSURLSession *session = [NSURLSession sharedSession];
-    NSURL *url = [NSURL URLWithString:@"https://star.xiaojukeji.com/config/get.node?city=-1&areaid=&name=group"];
-    NSURLSessionTask *task = [session dataTaskWithURL:url
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.defaultSessionConfiguration delegate:[DoraemonNetworkUtil shareInstance] delegateQueue:nil];
+    NSURL *url = [NSURL URLWithString:DoraemonBackendPlatformURL(@"/config/get.node?city=-1&areaid=&name=group")];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    if (DoraemonBackendToken().length) [request setValue:DoraemonBackendToken() forHTTPHeaderField:@"X-DoKit-Token"];
+    NSURLSessionTask *task = [session dataTaskWithRequest:request
                                     completionHandler:^(NSData *data, NSURLResponse *response, NSError* error) {
         if (error == nil) {
 //            NSLog(@"%@", [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:nil]);

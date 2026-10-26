@@ -49,7 +49,7 @@ internal class DoKitViewManager : DoKitViewManagerInterface {
         Room.databaseBuilder(
             DoKitEnv.requireApp(),
             DokitDatabase::class.java,
-            "dokit-database"
+            "dokit-database-" + com.didichuxing.doraemonkit.util.EncryptUtils.encryptMD5ToString(com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.MOCK_BASE_URL + "|" + DoKitManager.PRODUCT_ID)
         ) //下面注释表示允许主线程进行数据库操作，但是不推荐这样做。
             //他可能造成主线程lock以及anr
             //所以我们的操作都是在新线程完成的

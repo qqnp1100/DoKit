@@ -25,7 +25,8 @@ class ProxyMockManager {
         private const val TAG = "McProxyManager"
     }
 
-    private val mutableMap: MutableMap<String, ProxyQueryData> = mutableMapOf()
+    private val mutableMap = java.util.concurrent.ConcurrentHashMap<String, ProxyQueryData>()
+    private val deadlines = android.os.Handler(android.os.Looper.getMainLooper())
 
     fun requestStart(request: ProxyRequest) {
         LogHelper.d(TAG, "requestStart() request=$request")
@@ -58,6 +59,10 @@ class ProxyMockManager {
 
     private fun requestQueryNow(request: ProxyQueryData) {
         mutableMap[request.pid] = request
+        deadlines.postDelayed({
+            mutableMap.remove(request.pid)?.proxyCallback?.onResponse(
+                ProxyMockUtils.createEmptyProxyResponse(request.proxyRequest.did))
+        }, com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.QUERY_TIMEOUT_MS)
         requestQueryLine(request.pid, request.proxyRequest)
     }
 
@@ -76,10 +81,9 @@ class ProxyMockManager {
 
     fun receiveQueryResponse(textPackage: TextPackage, response: ProxyResponse) {
         LogHelper.d(TAG, "receiveQueryResponse() response=$response")
-        val queryData = mutableMap[textPackage.pid]
+        val queryData = mutableMap.remove(textPackage.pid)
         if (queryData != null) {
             queryData.proxyCallback.onResponse(response)
-            mutableMap.remove(textPackage.pid)
         }
     }
 

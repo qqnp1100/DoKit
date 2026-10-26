@@ -1,3 +1,5 @@
+import { getBackendConfig, isBackendUrl as dokitOwnRequest } from './backend';
+
 import {
   EventEmitter
 } from './eventEmiter'
@@ -74,6 +76,7 @@ export class Request extends EventEmitter {
 
       xhr.addEventListener('readystatechange', function (e) {
         try {
+          if (dokitOwnRequest(xhr.reqConf.requestInfo.url)) return;
           switch (xhr.readyState) {
             case 2:
               // this.headersReceived();
@@ -116,6 +119,10 @@ export class Request extends EventEmitter {
 
     window.XMLHttpRequest.prototype.send = function () {
       try {
+        if (dokitOwnRequest(this.reqConf.requestInfo.url)) {
+          if (getBackendConfig().sdkToken) originSetRequestHeader.call(this, 'X-DoKit-Token', getBackendConfig().sdkToken);
+          return originSend.apply(this, this.reqConf.requestInfo.method === 'GET' ? [null] : arguments);
+        }
         if (arguments.length) {
           this.reqConf.requestInfo.body = arguments[0]
         }
@@ -135,6 +142,12 @@ export class Request extends EventEmitter {
     const origFetch = window.fetch;
     window.fetch = async function (...args) {
       try {
+        if (dokitOwnRequest(args[0])) {
+          const own = new window.Request(args[0], args[1]);
+          const headers = new Headers(own.headers);
+          if (getBackendConfig().sdkToken) headers.set('X-DoKit-Token', getBackendConfig().sdkToken);
+          return origFetch(new window.Request(own, { headers, redirect: 'error' }));
+        }
         let did = guid();
         let pid = guid();
         let reqId = guid()

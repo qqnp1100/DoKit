@@ -59,7 +59,8 @@ class WebSocketClient {
         bindSession()
     }
 
-    fun connect(url: String) {
+    fun connect(url: String = com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.WEB_SOCKET_URL) {
+        if (url.isBlank()) return
         WsLog.i("connect. ")
         closed = false
         webSocketSession.connect(url)
@@ -72,6 +73,7 @@ class WebSocketClient {
     }
 
     fun reConnect(url: String) {
+        if (url.isBlank()) return
         WsLog.i("reConnect url=${url} ")
         closed = false
         loginSuccess = false
@@ -160,6 +162,10 @@ class WebSocketClient {
     }
 
     private fun onLoginResponse(textPackage: TextPackage) {
+        if (textPackage.code != 200) {
+            close()
+            return
+        }
         if (!TextUtils.isEmpty(textPackage.data)) {
             val loginData = JsonParser.toLoginData(textPackage.data)
             if (!TextUtils.isEmpty(loginData.connectSerial)) {

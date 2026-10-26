@@ -155,7 +155,7 @@ object DoKitManager {
     var H5_MC_JS_INJECT_MODE = "file"
 
     @JvmField
-    var H5_MC_JS_INJECT_URL = "http://120.55.183.20/dokit/mc/dokit.js"
+    var H5_MC_JS_INJECT_URL = com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.HYBRID_JS_URL
 
     /**
      * 是否允许上传统计信息

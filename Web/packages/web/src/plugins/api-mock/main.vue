@@ -11,6 +11,7 @@
   </div>
 </template>
 <script>
+import { getBackendConfig } from "@dokit/web-utils";
 import interfaceItem from "./interface-item";
 
 export default {
@@ -23,7 +24,7 @@ export default {
     }
   },
   created() {
-    localStorage.setItem('dokit-interface-list', JSON.stringify(this.$store.state.interfaceList || []))
+    localStorage.setItem('dokit-interface-list:' + getBackendConfig().mockBaseUrl + ':' + this.$store.state.productId, JSON.stringify(this.$store.state.interfaceList || []))
   },
   methods: {
     toggleInterfaceSwitch(info) {
@@ -31,7 +32,7 @@ export default {
         info.interfaceIndex
       ].checked;
 
-      localStorage.setItem('dokit-interface-list', JSON.stringify(this.$store.state.interfaceList))
+      localStorage.setItem('dokit-interface-list:' + getBackendConfig().mockBaseUrl + ':' + this.$store.state.productId, JSON.stringify(this.$store.state.interfaceList))
     },
     setScene(info) {
       this.$store.state.interfaceList[info.interfaceIndex].sceneList.forEach((e, index) => {
@@ -40,7 +41,7 @@ export default {
           e.checked = true;
         }
       });
-      localStorage.setItem('dokit-interface-list', JSON.stringify(this.$store.state.interfaceList))
+      localStorage.setItem('dokit-interface-list:' + getBackendConfig().mockBaseUrl + ':' + this.$store.state.productId, JSON.stringify(this.$store.state.interfaceList))
     },
   },
 };

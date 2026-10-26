@@ -28,8 +28,8 @@ import kotlin.coroutines.suspendCoroutine
 object HttpMockServer {
     const val RESPONSE_OK = 200
 
-    const val host = "https://www.dokit.cn"
-    const val host_test = "https://pre.dokit.cn"
+    val host get() = com.didichuxing.doraemonkit.kit.network.DoKitBackendConfig.PLATFORM_BASE_URL
+    val host_test get() = host
 
     var mExcludeKey: List<String> = mutableListOf()
 

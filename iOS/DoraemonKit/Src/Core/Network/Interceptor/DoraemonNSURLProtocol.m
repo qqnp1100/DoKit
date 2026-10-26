@@ -1,3 +1,4 @@
+#import "DoraemonBackendConfig.h"
 //
 //  DoraemonNSURLProtocol.m
 //  DoraemonKit
@@ -52,6 +53,9 @@ static NSString * const kDoraemonProtocolKey = @"doraemon_protocol_key";
 }
 
 + (BOOL)canInitWithRequest:(NSURLRequest *)request{
+    if (DoraemonBackendOwnURL(request.URL) ||
+        ([DoraemonManager shareInstance].mockDomain.length &&
+         [request.URL.absoluteString hasPrefix:[DoraemonManager shareInstance].mockDomain])) return NO;
     if ([NSURLProtocol propertyForKey:kDoraemonProtocolKey inRequest:request]) {
         return NO;
     }
@@ -79,12 +83,14 @@ static NSString * const kDoraemonProtocolKey = @"doraemon_protocol_key";
     NSMutableURLRequest *mutableReqeust = [request mutableCopy];
     [NSURLProtocol setProperty:@YES forKey:kDoraemonProtocolKey inRequest:mutableReqeust];
     if ([[DoraemonMockManager sharedInstance] needMock:request]) {
-        NSString *mockDomain = [DoraemonManager shareInstance].mockDomain ? [DoraemonManager shareInstance].mockDomain : @"https://mock.dokit.cn/";
+        NSString *mockDomain = [DoraemonManager shareInstance].mockDomain ? [DoraemonManager shareInstance].mockDomain : DoraemonBackendMockDomain();
         NSString *mockSceneUrl = [mockDomain stringByAppendingString:@"api/app/scene/%@"];
         NSString *sceneId = [[DoraemonMockManager sharedInstance] getSceneId:request];
         NSString *urlString = [NSString stringWithFormat:mockSceneUrl, sceneId];
         DoKitLog(@"MOCK URL == %@",urlString);
         mutableReqeust = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlString]];
+        if (DoraemonBackendOwnURL(mutableReqeust.URL) && DoraemonBackendToken().length)
+            [mutableReqeust setValue:DoraemonBackendToken() forHTTPHeaderField:@"X-DoKit-Token"];
         dispatch_async(dispatch_get_main_queue(), ^{
             [DoraemonToastUtil showToastBlack:[NSString stringWithFormat:@"mock url = %@",request.URL.absoluteURL] inView:[UIViewController rootViewControllerForKeyWindow].view];
         });
@@ -226,4 +232,10 @@ static NSString * const kDoraemonProtocolKey = @"doraemon_protocol_key";
     return NO;
 }
 
+
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task willPerformHTTPRedirection:(NSHTTPURLResponse *)response newRequest:(NSURLRequest *)request completionHandler:(void (^)(NSURLRequest *))completionHandler {
+    NSMutableURLRequest *safeRequest = request.mutableCopy;
+    if (!DoraemonBackendOwnURL(request.URL)) [safeRequest setValue:nil forHTTPHeaderField:@"X-DoKit-Token"];
+    completionHandler(safeRequest);
+}
 @end

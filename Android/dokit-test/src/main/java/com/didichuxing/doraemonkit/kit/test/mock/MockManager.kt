@@ -21,6 +21,7 @@ import com.didichuxing.doraemonkit.util.GsonUtils
 object MockManager {
 
     @Deprecated("")
+    @Volatile var legacyRecording: Boolean = false
     var MC_CASE_ID: String = ""
 
 

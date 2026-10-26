@@ -68,12 +68,13 @@
 </template>
 
 <script>
+import { getBackendConfig } from "@dokit/web-utils";
 import { $bus } from "../../assets/util";
 export default {
   data() {
     return {
       recording: false,
-      socketUrl: "",
+      socketUrl: getBackendConfig().webSocketUrl,
       historyList: [],
       testSocket: null,
     };

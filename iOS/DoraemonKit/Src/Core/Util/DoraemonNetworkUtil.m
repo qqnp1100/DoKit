@@ -1,3 +1,4 @@
+#import "DoraemonBackendConfig.h"
 //
 //  DoraemonNetworkUtil.m
 //  DoraemonKit
@@ -32,11 +33,12 @@
     if (!error) {
         NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
         request.HTTPMethod = method;
+        if (DoraemonBackendOwnURL(request.URL) && DoraemonBackendToken().length) [request setValue:DoraemonBackendToken() forHTTPHeaderField:@"X-DoKit-Token"];
         [request addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
         [request addValue:@"application/json" forHTTPHeaderField:@"Accept"];
         [request setHTTPBody:postData];
         
-        NSURLSession *session = [NSURLSession sharedSession];
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.defaultSessionConfiguration delegate:[self shareInstance] delegateQueue:nil];
         NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (error) {
@@ -61,13 +63,14 @@
     if ([params allKeys].count>0) {
         [mutableUrl appendString:@"?"];
         for (id key in params) {
-            NSString *value = [[params objectForKey:key] stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+            NSString *value = [[[params objectForKey:key] description] stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
             [mutableUrl appendString:[NSString stringWithFormat:@"%@=%@&", key, value]];
         }
         mutableUrl = [[mutableUrl substringToIndex:mutableUrl.length - 1] mutableCopy];
     }
     NSString *urlEnCode = [mutableUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
-    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:urlEnCode]];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlEnCode]];
+    if (DoraemonBackendOwnURL(request.URL) && DoraemonBackendToken().length) [request setValue:DoraemonBackendToken() forHTTPHeaderField:@"X-DoKit-Token"];
     NSOperationQueue *queue = [[NSOperationQueue alloc] init];
     NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
     NSURLSession *session = [NSURLSession sessionWithConfiguration:config delegate:[self shareInstance] delegateQueue:queue];
@@ -102,13 +105,13 @@
 //主要就是处理HTTPS请求的
 - (void)URLSession:(NSURLSession *)session didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
 {
-    NSURLProtectionSpace *protectionSpace = challenge.protectionSpace;
-    if ([protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust]) {
-        SecTrustRef serverTrust = protectionSpace.serverTrust;
-        completionHandler(NSURLSessionAuthChallengeUseCredential, [NSURLCredential credentialForTrust:serverTrust]);
-    } else {
-        completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
-    }
+    completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
 }
 
+
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task willPerformHTTPRedirection:(NSHTTPURLResponse *)response newRequest:(NSURLRequest *)request completionHandler:(void (^)(NSURLRequest *))completionHandler {
+    NSMutableURLRequest *safeRequest = request.mutableCopy;
+    if (!DoraemonBackendOwnURL(request.URL)) [safeRequest setValue:nil forHTTPHeaderField:@"X-DoKit-Token"];
+    completionHandler(safeRequest);
+}
 @end

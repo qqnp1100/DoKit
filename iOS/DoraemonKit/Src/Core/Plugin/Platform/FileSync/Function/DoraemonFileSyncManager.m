@@ -1,3 +1,8 @@
+#import "DoraemonBackendConfig.h"
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <limits.h>
+#include <errno.h>
 //
 //  DoraemonFileSyncManager.m
 //  DoraemonKit
@@ -50,7 +55,7 @@
     [self addDefaultHandlerForMethod:@"GET"
                         requestClass:[GCDWebServerRequest class]
                         processBlock:^GCDWebServerResponse * _Nullable(__kindof GCDWebServerRequest * _Nonnull request) {
-        NSString *html = @"<html><body>请访问 <b><a href=\"https://www.dokit.cn\">www.dokit.cn</a></b> 使用该功能</body></html>";
+        NSString *html = [NSString stringWithFormat:@"<html><body>请访问 <b><a href=\"%@\">自建 DoKit 后台</a></b> 使用该功能</body></html>", DoraemonBackendPlatformURL(@"")];
         return [GCDWebServerDataResponse responseWithHTML:html];
     }];
     
@@ -182,6 +187,27 @@
 }
 
 
+static BOOL DoraemonFileWithinSandbox(NSString *path) {
+    if (!path.length || [path rangeOfString:[NSString stringWithFormat:@"%C", (unichar)0]].location != NSNotFound) return NO;
+    if ([path.pathComponents containsObject:@".."]) return NO;
+    char resolvedRoot[PATH_MAX], resolvedTarget[PATH_MAX];
+    if (!realpath(NSHomeDirectory().fileSystemRepresentation, resolvedRoot)) return NO;
+    NSString *cursor = path;
+    NSMutableArray<NSString *> *missing = [NSMutableArray array];
+    while (!realpath(cursor.fileSystemRepresentation, resolvedTarget)) {
+        int failure = errno;
+        struct stat info;
+        // Reject a dangling or inaccessible symlink instead of treating it as a new file.
+        if (lstat(cursor.fileSystemRepresentation, &info) == 0 || failure != ENOENT || [cursor isEqualToString:@"/"]) return NO;
+        [missing insertObject:cursor.lastPathComponent atIndex:0];
+        cursor = cursor.stringByDeletingLastPathComponent;
+    }
+    NSString *root = [NSString stringWithUTF8String:resolvedRoot];
+    NSString *target = [NSString stringWithUTF8String:resolvedTarget];
+    for (NSString *component in missing) target = [target stringByAppendingPathComponent:component];
+    return [target isEqualToString:root] || [target hasPrefix:[root stringByAppendingString:@"/"]];
+}
+
 #pragma mark -- 服务具体处理
 
 - (GCDWebServerResponse *)responseWhenFailed {
@@ -201,6 +227,7 @@
     NSArray *rowDatas = data[@"rowDatas"];
     NSString *rootPath = NSHomeDirectory();
     NSString *targetPath = [NSString stringWithFormat:@"%@%@%@", rootPath, dirPath, fileName];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
     
     if (![_fm fileExistsAtPath:targetPath]) {
         return [self responseWhenFailed];
@@ -254,6 +281,7 @@
     NSArray *rowDatas = data[@"rowDatas"];
     NSString *rootPath = NSHomeDirectory();
     NSString *targetPath = [NSString stringWithFormat:@"%@%@%@", rootPath, dirPath, fileName];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
     
     if (![_fm fileExistsAtPath:targetPath]) {
         return [self responseWhenFailed];
@@ -320,6 +348,7 @@
     NSString *tableName = query[@"tableName"];
     NSString *rootPath = NSHomeDirectory();
     NSString *targetPath = [NSString stringWithFormat:@"%@%@%@", rootPath, dirPath, fileName];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
 
     if (![_fm fileExistsAtPath:targetPath]) {
         return [self responseWhenFailed];
@@ -370,6 +399,7 @@
     NSArray *rowDatas = data[@"rowDatas"];
     NSString *rootPath = NSHomeDirectory();
     NSString *targetPath = [NSString stringWithFormat:@"%@%@%@", rootPath, dirPath, fileName];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
     
     if (![_fm fileExistsAtPath:targetPath]) {
         return [self responseWhenFailed];
@@ -441,6 +471,7 @@
     NSString *fileName = query[@"fileName"];
     NSString *rootPath = NSHomeDirectory();
     NSString *targetPath = [NSString stringWithFormat:@"%@%@%@", rootPath, dirPath, fileName];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
 
     if (![_fm fileExistsAtPath:targetPath]) {
         return [self responseWhenFailed];
@@ -481,6 +512,7 @@
     NSString *content = data[@"content"];
     NSString *rootPath = NSHomeDirectory();
     NSString *targetPath = [NSString stringWithFormat:@"%@%@%@", rootPath, dirPath, fileName];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
 
     NSDictionary *res;
     if (![_fm createFileAtPath:targetPath contents:[content dataUsingEncoding:NSUTF8StringEncoding] attributes:nil]) {
@@ -505,6 +537,7 @@
     NSString *fileName = data[@"fileName"];
     NSString *rootPath = NSHomeDirectory();
     NSString *targetPath = [NSString stringWithFormat:@"%@%@%@", rootPath, dirPath, fileName];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
     NSError *error = nil;
 
     NSDictionary *res;
@@ -531,7 +564,9 @@
     NSString *newName = data[@"newName"];
     NSString *rootPath = NSHomeDirectory();
     NSString *targetPath = [NSString stringWithFormat:@"%@%@%@", rootPath, dirPath, oldName];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
     NSString *destinationPath = [NSString stringWithFormat:@"%@%@%@", rootPath, dirPath, newName];
+    if (!DoraemonFileWithinSandbox(destinationPath)) return [self responseWhenFailed];
     NSError *error = nil;
 
     NSDictionary *res;
@@ -571,6 +606,7 @@
     }
     NSString *rootPath = NSHomeDirectory();
     NSString *targetPath = [NSString stringWithFormat:@"%@%@",rootPath,realDirPath];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
     
     NSMutableArray *files = @[].mutableCopy;
        NSError *error = nil;
@@ -578,6 +614,7 @@
     for (NSString *path in paths) {
         BOOL isDir = false;
         NSString *fullPath = [targetPath stringByAppendingPathComponent:path];
+        if (!DoraemonFileWithinSandbox(fullPath)) continue;
         [_fm fileExistsAtPath:fullPath isDirectory:&isDir];
         
         NSMutableDictionary *dic = [[NSMutableDictionary alloc] init];
@@ -618,6 +655,7 @@
     }
     NSString *rootPath = NSHomeDirectory();
     NSString *targetPath = [NSString stringWithFormat:@"%@%@%@", rootPath, dirPath, file.fileName];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
     NSError *error = nil;
     
     if (![_fm fileExistsAtPath:[NSString stringWithFormat:@"%@%@", rootPath, dirPath]]) {
@@ -646,6 +684,7 @@
     }
     NSString *fileName = [[request query] objectForKey:@"fileName"];
     NSString *targetPath = [NSString stringWithFormat:@"%@%@%@",rootPath,dirPath,fileName];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
     
     NSDictionary *res;
     BOOL isDirectory = NO;
@@ -671,6 +710,7 @@
     NSString *fileName = data[@"fileName"];
     NSString *rootPath = NSHomeDirectory();
     NSString *targetPath = [NSString stringWithFormat:@"%@%@%@",rootPath,dirPath,fileName];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
     NSError *error;
     
     NSDictionary *res;
@@ -694,6 +734,7 @@
     }
     NSString *fileName = [[request query] objectForKey:@"fileName"];
     NSString *targetPath = [NSString stringWithFormat:@"%@%@%@",rootPath,dirPath,fileName];
+    if (!DoraemonFileWithinSandbox(targetPath)) return [self responseWhenFailed];
     
     NSDictionary *res;
     if ([_fm fileExistsAtPath:targetPath]) {

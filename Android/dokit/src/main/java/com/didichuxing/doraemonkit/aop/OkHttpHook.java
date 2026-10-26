@@ -28,6 +28,20 @@ import okhttp3.OkHttpClient;
  * ================================================
  */
 public class OkHttpHook {
+    // Interceptor/module construction can itself construct an instrumented OkHttpClient.
+    private static final ThreadLocal<Boolean> HOOK_SUPPRESSED = new ThreadLocal<>();
+
+    /** Build SDK transport clients without injecting DoKit into its own transport. */
+    public static OkHttpClient buildWithoutHook(OkHttpClient.Builder builder) {
+        Boolean previous = HOOK_SUPPRESSED.get();
+        HOOK_SUPPRESSED.set(true);
+        try {
+            return builder.build();
+        } finally {
+            if (previous == null) HOOK_SUPPRESSED.remove();
+            else HOOK_SUPPRESSED.set(previous);
+        }
+    }
 //    每个拦截器都有自己的相对优点。
 
 //    应用拦截器
@@ -49,9 +63,10 @@ public class OkHttpHook {
      * 添加dokit 的拦截器 通过字节码插入
      */
     public static void addDoKitIntercept(OkHttpClient client) {
-        if (!DoKit.isInit()) {
+        if (Boolean.TRUE.equals(HOOK_SUPPRESSED.get()) || !DoKit.isInit()) {
             return;
         }
+        HOOK_SUPPRESSED.set(true);
         try {
             List<Interceptor> interceptors = new ArrayList<>(client.interceptors());
             List<Interceptor> networkInterceptors = new ArrayList<>(client.networkInterceptors());
@@ -74,6 +89,8 @@ public class OkHttpHook {
             ReflectUtils.reflect(client).field("networkInterceptors", networkInterceptors);
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            HOOK_SUPPRESSED.remove();
         }
 
 

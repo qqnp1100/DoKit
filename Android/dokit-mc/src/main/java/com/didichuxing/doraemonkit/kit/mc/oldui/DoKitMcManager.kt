@@ -34,7 +34,9 @@ object DoKitMcManager {
      */
     var HOST_INFO: HostInfo? = null
 
-    var MC_CASE_ID: String = ""
+    var MC_CASE_ID: String
+        get() = com.didichuxing.doraemonkit.kit.test.mock.MockManager.MC_CASE_ID
+        set(value) { com.didichuxing.doraemonkit.kit.test.mock.MockManager.MC_CASE_ID = value }
 
 
     var WS_MODE: TestMode = TestMode.UNKNOWN

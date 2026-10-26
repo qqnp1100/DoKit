@@ -102,8 +102,8 @@ class DoKitMcMainFragment : BaseFragment() {
             lifecycleScope.launch(mExceptionHandler) {
                 privacyInterceptDialog(
                     "隐私提醒",
-                    """1.用例采集会实时录制并上传接口数据到dokit.cn平台,请确认是否要开启？
-2. 请确认已在dokit.cn平台一机多控模块添加诸如token、sign等无法确认接口唯一性的exclude字段(字段作用于全部录制接口)。
+                    """1.用例采集会实时录制并上传接口数据到自建 DoKit 平台,请确认是否要开启？
+2. 请确认已在自建 DoKit 平台一机多控模块添加诸如token、sign等无法确认接口唯一性的exclude字段(字段作用于全部录制接口)。
                             """
                 ).isTrueWithCor(
                     isFalse = {
@@ -144,6 +144,7 @@ class DoKitMcMainFragment : BaseFragment() {
                     SPUtils.getInstance().put(DoKitMcManager.MC_CASE_RECODING_KEY, false)
                     DoKitTestManager.closeTest()
                     DoKitMcManager.IS_MC_RECODING = false
+                    com.didichuxing.doraemonkit.kit.test.mock.MockManager.legacyRecording = false
                     ToastUtils.showShort("用例上传成功")
                 } else {
                     LogHelper.e(TAG, "error msg===>${result.msg}")
@@ -203,6 +204,8 @@ class DoKitMcMainFragment : BaseFragment() {
     private fun saveRecodingStatus(configInfo: McCaseInfo?) {
         configInfo?.let {
             DoKitMcManager.MC_CASE_ID = it.caseId
+            com.didichuxing.doraemonkit.kit.test.mock.MockManager.MC_CASE_ID = it.caseId
+            com.didichuxing.doraemonkit.kit.test.mock.MockManager.legacyRecording = true
             DoKit.launchFloating(RecordingDoKitView::class.java)
             DoKitTestManager.startTest(TestMode.HOST)
             SPUtils.getInstance().put(DoKitMcManager.MC_CASE_ID_KEY, DoKitMcManager.MC_CASE_ID)
