@@ -39,8 +39,20 @@ rtk proxy chmod 600 central-publishing.properties /absolute/path/to/dokit-privat
 rtk proxy gpg --full-generate-key
 rtk proxy gpg --list-secret-keys --keyid-format LONG
 rtk proxy gpg --output /absolute/path/to/dokit-private.asc --armor --export-secret-keys KEY_FINGERPRINT
-rtk proxy gpg --keyserver keyserver.ubuntu.com --send-keys KEY_FINGERPRINT
+rtk proxy gpg --keyserver hkps://keyserver.ubuntu.com:443 --send-keys KEY_FINGERPRINT
 ```
+
+如果 GPG 报 `No route to host`，而 HTTPS 可以访问，可使用同一服务器的 HTTPS
+表单接口上传公钥。以下导出的是公钥：
+
+```sh
+rtk proxy mkdir -p publishing-keys
+rtk proxy gpg --output publishing-keys/dokit-public.asc --armor --export KEY_FINGERPRINT
+rtk proxy curl --fail-with-body --data-urlencode keytext@publishing-keys/dokit-public.asc https://keyserver.ubuntu.com/pks/add
+```
+
+返回 `inserted` 或 `updated` 表示服务器已接收。检索可能需要等待同步，再核对查询
+结果的指纹与本机完整指纹一致。
 
 发布时由 Gradle 的 signing 插件在内存中签名，不需要调用本机 GPG。
 也可通过同名环境变量注入配置；`DOKIT_SIGNING_KEY` 支持直接注入完整私钥文本。

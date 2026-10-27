@@ -10,8 +10,8 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 
-GROUP = 'com.didichuxing.doraemonkit'
-VERSION = '3.7.14.10-kotlin-2.4.21-SNAPSHOT'
+GROUP = 'io.github.qqnp1100'
+VERSION = '3.7.12'
 ARTIFACTS = ('dokitx', 'dokitx-ft', 'dokitx-mc', 'dokitx-autotest',
              'dokitx-gps-mock', 'dokitx-pthread-hook')
 SERVICES = ('com.didichuxing.doraemonkit.kit.AbstractKit',
@@ -33,8 +33,8 @@ def descriptors(archive):
     return result
 
 
-def published_file(repository, artifact, version, extension):
-    directory = repository / GROUP.replace('.', '/') / artifact / version
+def published_file(repository, artifact, version, extension, group=GROUP):
+    directory = repository / group.replace('.', '/') / artifact / version
     published_version = version
     if version.endswith('-SNAPSHOT'):
         metadata = ET.parse(directory / 'maven-metadata.xml')
@@ -68,6 +68,7 @@ def dex_defined_classes(data):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repository', required=True, type=Path)
+    parser.add_argument('--group', default=GROUP)
     parser.add_argument('--version', default=VERSION)
     parser.add_argument('--metadata', choices=['module', 'pom'], required=True)
     parser.add_argument('--fixture', type=Path, default=Path(__file__).resolve().parent)
@@ -77,7 +78,7 @@ def main():
     report = {'metadata': args.metadata, 'publishedAars': [], 'apks': [],
               'runtimeAssertionsExecuted': False, 'nativeFeaturesExecuted': False}
     for artifact in ARTIFACTS:
-        aar = published_file(args.repository, artifact, args.version, 'aar')
+        aar = published_file(args.repository, artifact, args.version, 'aar', args.group)
         with zipfile.ZipFile(aar) as outer:
             rules = outer.read('proguard.txt').decode('utf-8')
             with zipfile.ZipFile(io.BytesIO(outer.read('classes.jar'))) as classes:

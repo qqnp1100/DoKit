@@ -8,6 +8,7 @@ android {
 
     defaultConfig {
         minSdk rootProject.ext.android["minSdkVersion_21"]
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         consumerProguardFiles rootProject.file('gradle/consumer-rules/slf4j.pro'),
             rootProject.file('gradle/consumer-rules/epic.pro')
     }
@@ -32,6 +33,10 @@ android {
         abortOnError false
     }
 
+    testOptions {
+        unitTests.includeAndroidResources = true
+    }
+
 
     /**
      * 支持ViewBinding
@@ -52,8 +57,12 @@ kotlin {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.15.1'
+    testImplementation project(':dokit-util')
     androidTestImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation project(':dokit-util')
     compileOnly rootProject.ext.dependencies["kotlin"]
     implementation rootProject.ext.dependencies["core-ktx"]
     implementation rootProject.ext.dependencies["fragment-ktx"]

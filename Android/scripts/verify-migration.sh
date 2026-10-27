@@ -84,17 +84,17 @@ python3 scripts/verify-native-cpp-runtime.py app/build/outputs/apk/debug/app-deb
 python3 scripts/verify-legacy-artifacts.py --require-all --report "$migration_reports/legacy-artifacts.json"
 run_gradle debug-dependencies :app:dependencies --configuration debugRuntimeClasspath
 run_gradle release-dependencies :app:dependencies --configuration releaseRuntimeClasspath
-python3 - "$migration_reports/release-dependencies.log" <<'PY'
+python3 - "$migration_reports/release-dependencies.log" "$migration_group" <<'PY'
 from pathlib import Path
 import re
 import sys
 dependencies = Path(sys.argv[1]).read_text()
-assert re.search(r'''(?:project ['"]?:dokit-no-op\b|com\.didichuxing\.doraemonkit:dokitx-no-op:)''', dependencies), 'Release must resolve no-op'
+assert re.search(r'''(?:project ['"]?:dokit-no-op\b|''' + re.escape(sys.argv[2]) + r''':dokitx-no-op:)''', dependencies), 'Release must resolve no-op'
 for project, artifact in [('dokit', 'dokitx'), ('dokit-mc', 'dokitx-mc'),
                           ('dokit-autotest', 'dokitx-autotest'), ('dokit-test', 'dokitx-test'),
                           ('dokit-pthread-hook', 'dokitx-pthread-hook')]:
     assert not re.search(r'''project ['"]?:''' + re.escape(project) + r'''(?:['"]|\s|$)''', dependencies), f'Full debug project leaked: {project}'
-    assert f'com.didichuxing.doraemonkit:{artifact}:' not in dependencies, f'Full debug artifact leaked: {artifact}'
+    assert f'{sys.argv[2]}:{artifact}:' not in dependencies, f'Full debug artifact leaked: {artifact}'
 PY
 run_gradle compiler :dokit:dependencyInsight --configuration kotlinCompilerClasspath --dependency kotlin-compiler-embeddable
 python3 - "$migration_reports/compiler.log" <<'PY'
@@ -126,37 +126,37 @@ run_gradle local-publication \
   :dokit-pthread-hook:publishReleasePublicationToMigrationRepository --max-workers=2
 run_gradle maven-consumer -p migration-tests/maven-consumer \
   -PmigrationRepository="$migration_root/build/migration-repository" \
-  -PmigrationVersion="$migration_version" assembleRelease
+  -PmigrationGroup="$migration_group" -PmigrationVersion="$migration_version" assembleRelease
 run_gradle maven-consumer-dependencies -p migration-tests/maven-consumer \
   -PmigrationRepository="$migration_root/build/migration-repository" \
-  -PmigrationVersion="$migration_version" dependencies --configuration releaseRuntimeClasspath
-python3 - "$migration_reports/maven-consumer-dependencies.log" <<'PY'
+  -PmigrationGroup="$migration_group" -PmigrationVersion="$migration_version" dependencies --configuration releaseRuntimeClasspath
+python3 - "$migration_reports/maven-consumer-dependencies.log" "$migration_group" <<'PY'
 from pathlib import Path
 import re
 import sys
 dependencies = Path(sys.argv[1]).read_text()
-assert 'com.didichuxing.doraemonkit:dokitx-no-op:' in dependencies, 'Published no-op must be resolved'
-assert 'com.didichuxing.doraemonkit:dokitx-util:' in dependencies, 'Published util must be resolved'
+assert f'{sys.argv[2]}:dokitx-no-op:' in dependencies, 'Published no-op must be resolved'
+assert f'{sys.argv[2]}:dokitx-util:' in dependencies, 'Published util must be resolved'
 for module in ('dokitx', 'dokitx-mc', 'dokitx-autotest', 'dokitx-test', 'dokitx-pthread-hook'):
-    assert not re.search(r'com\.didichuxing\.doraemonkit:' + module + r':', dependencies), f'Full debug implementation leaked: {module}'
+    assert not re.search(re.escape(sys.argv[2]) + ':' + module + r':', dependencies), f'Full debug implementation leaked: {module}'
 assert not re.search(r'''\bproject ['"]?:dokit''', dependencies), 'Consumer must resolve Maven artifacts'
 PY
 for migration_metadata in module pom; do
   run_gradle "full-maven-consumer-$migration_metadata" -p migration-tests/full-runtime-consumer \
     -PmigrationRepository="$migration_root/build/migration-repository" \
-    -PmigrationVersion="$migration_version" -PmigrationMetadata="$migration_metadata" \
+    -PmigrationGroup="$migration_group" -PmigrationVersion="$migration_version" -PmigrationMetadata="$migration_metadata" \
     assembleDebug assembleRelease --refresh-dependencies --max-workers=2
   # Inspect variants in a separate invocation: --all-variants must run before
   # assembly or a dependency-report task resolves that configuration.
   run_gradle "full-maven-insight-$migration_metadata" -p migration-tests/full-runtime-consumer \
     -PmigrationRepository="$migration_root/build/migration-repository" \
-    -PmigrationVersion="$migration_version" -PmigrationMetadata="$migration_metadata" \
+    -PmigrationGroup="$migration_group" -PmigrationVersion="$migration_version" -PmigrationMetadata="$migration_metadata" \
     dependencyInsight --dependency dokitx --configuration releaseRuntimeClasspath --all-variants --max-workers=2
   python3 migration-tests/full-runtime-consumer/verify-consumption.py \
-    --repository "$migration_root/build/migration-repository" --version "$migration_version" \
+    --repository "$migration_root/build/migration-repository" --group "$migration_group" --version "$migration_version" \
     --metadata "$migration_metadata" --report "$migration_reports/full-maven-$migration_metadata.json"
 done
-python3 - "$migration_reports" <<'PY'
+python3 - "$migration_reports" "$migration_group" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -165,9 +165,9 @@ for metadata, variant in [('module', 'releaseVariantReleaseRuntimePublication'),
     insight = (reports / f'full-maven-insight-{metadata}.log').read_text()
     assert f'Variant {variant}:' in insight, f'{metadata} metadata was not selected'
     for artifact in ('dokitx', 'dokitx-ft', 'dokitx-mc', 'dokitx-autotest', 'dokitx-gps-mock', 'dokitx-pthread-hook'):
-        assert f'com.didichuxing.doraemonkit:{artifact}:' in insight, f'Missing published artifact: {artifact}'
+        assert f'{sys.argv[2]}:{artifact}:' in insight, f'Missing published artifact: {artifact}'
     assert not re.search(r'''\bproject ['"]?:dokit''', insight), 'Full consumer must resolve Maven artifacts'
-    assert 'com.didichuxing.doraemonkit:dokitx-no-op:' not in insight, 'Full consumer must resolve full runtime'
+    assert f'{sys.argv[2]}:dokitx-no-op:' not in insight, 'Full consumer must resolve full runtime'
 PY
 if [[ "$migration_phase" == modules ]]; then
   exit 0

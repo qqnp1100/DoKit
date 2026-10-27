@@ -6,6 +6,8 @@ import android.view.View
 import android.view.ViewParent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityManager
+import android.view.inspector.WindowInspector
+import com.didichuxing.doraemonkit.kit.test.hook.AccessibilityDelegateHook
 import com.didichuxing.doraemonkit.kit.test.hook.AccessibilityGetInstanceMethodHook
 import com.didichuxing.doraemonkit.kit.test.hook.ViewOnClickListenerEventHook
 import com.didichuxing.doraemonkit.kit.test.hook.ViewOnInitializeAccessibilityEventHook
@@ -26,11 +28,19 @@ import java.lang.reflect.Method
 object XposedHookUtil {
 
     var ROOT_VIEWS: List<ViewParent>? = null
+        get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            WindowInspector.getGlobalWindowViews().mapNotNull { it.parent }
+        } else {
+            field
+        }
 
     private var runTimeHookEnable: Boolean = false
 
 
     private val accessibilityEventHook = ViewOnInitializeAccessibilityEventHook()
+    private val accessibilityDelegateHook by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) AccessibilityDelegateHook() else null
+    }
 
     /**
      * 运行时hook是否开启
@@ -43,6 +53,9 @@ object XposedHookUtil {
      * 开始运行时 hook
      */
     fun startRunTimeHook(context: Context? = Utils.getApp()) {
+        if (runTimeHookEnable) {
+            return
+        }
         runTimeHookEnable = true
         ReflectHookUtil.hookAccessibilityManager(context, true)
         hookAccessibilityEvent()
@@ -52,9 +65,12 @@ object XposedHookUtil {
      * 停止运行时 hook
      */
     fun stopRunTimeHook(context: Context? = Utils.getApp()) {
-        ReflectHookUtil.hookAccessibilityManager(context, false)
-        unHookAccessibilityEvent()
+        if (!runTimeHookEnable) {
+            return
+        }
         runTimeHookEnable = false
+        unHookAccessibilityEvent()
+        ReflectHookUtil.hookAccessibilityManager(context, false)
     }
 
     fun hookAccessibilityManager() {
@@ -67,7 +83,9 @@ object XposedHookUtil {
     }
 
     private fun hookAccessibilityEvent() {
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            accessibilityDelegateHook?.start()
+        } else {
             try {
                 DexposedBridge.findAndHookMethod(
                     View::class.java,
@@ -82,7 +100,9 @@ object XposedHookUtil {
     }
 
     private fun unHookAccessibilityEvent() {
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            accessibilityDelegateHook?.stop()
+        } else {
             try {
                 val method: Method = View::class.java.getDeclaredMethod("onInitializeAccessibilityEvent", AccessibilityEvent::class.java)
                 DexposedBridge.unhookMethod(method, accessibilityEventHook)
@@ -114,6 +134,8 @@ object XposedHookUtil {
     }
 
     private fun hookWindowManagerGlobal() {
-        ROOT_VIEWS = ReflectHookUtil.getRootViewsFromWindowManageGlobal()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            ROOT_VIEWS = ReflectHookUtil.getRootViewsFromWindowManageGlobal()
+        }
     }
 }

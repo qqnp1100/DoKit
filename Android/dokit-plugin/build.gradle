@@ -42,6 +42,12 @@ gradlePlugin {
             displayName = 'DoKit local compatibility alias'
             description = 'Compatibility alias of com.didi.dokit.'
         }
+        central {
+            id = 'io.github.qqnp1100.dokit'
+            implementationClass = 'com.didichuxing.doraemonkit.plugin.DoKitPlugin'
+            displayName = 'DoKit Android instrumentation'
+            description = 'DoKit instrumentation for AGP 9.4.1 using public scoped artifacts.'
+        }
     }
 }
 publishing {
@@ -49,6 +55,11 @@ publishing {
         if (name == 'pluginMaven') { artifactId = 'dokitx-plugin' }
     }
     repositories { maven { name = 'migration'; url = layout.buildDirectory.dir('migration-repository') } }
+}
+
+apply from: 'gradle/publishing.gradle'
+if (dokitPublicationSetting('DOKIT_PUBLISH_TARGET') == 'central') {
+    apply from: 'gradle/central.gradle'
 }
 
 tasks.withType(Test).configureEach {

@@ -14,17 +14,7 @@ if (!publishedArtifact) {
 group = publicationConfig['group_id']
 version = publicationConfig['version']
 
-def localPublicationProperties = new Properties()
-def localPublicationFile = rootProject.file('local.properties')
-if (localPublicationFile.isFile()) {
-    localPublicationFile.withInputStream { localPublicationProperties.load(it) }
-}
-ext.dokitPublicationSetting = { String name ->
-    providers.gradleProperty(name)
-        .orElse(providers.environmentVariable(name))
-        .getOrElse(localPublicationProperties.getProperty(name, ''))
-        .trim()
-}
+apply from: rootProject.file('dokit-plugin/gradle/publishing.gradle')
 
 android {
     publishing {
@@ -42,29 +32,7 @@ afterEvaluate {
                 groupId = publicationConfig['group_id']
                 artifactId = publishedArtifact
                 version = publicationConfig['version']
-                pom {
-                    name = publishedArtifact
-                    description = 'DoKit is an efficiency platform for the entire life cycle of general front-end product research and development.'
-                    url = 'https://github.com/didi/DoraemonKit'
-                    licenses {
-                        license {
-                            name = 'The Apache License, Version 2.0'
-                            url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
-                        }
-                    }
-                    developers {
-                        developer {
-                            id = 'OrangeLab'
-                            name = 'Orange Lab'
-                            email = 'orange-lab@didiglobal.com'
-                        }
-                    }
-                    scm {
-                        connection = 'scm:git:https://github.com/didi/DoraemonKit.git'
-                        developerConnection = 'scm:git:ssh://git@github.com/didi/DoraemonKit.git'
-                        url = 'https://github.com/didi/DoraemonKit'
-                    }
-                }
+                pom.name = publishedArtifact
             }
         }
     }

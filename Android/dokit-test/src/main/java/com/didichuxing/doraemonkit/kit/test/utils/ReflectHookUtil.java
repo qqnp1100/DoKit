@@ -31,6 +31,9 @@ public class ReflectHookUtil {
      */
     public static Object mAccessibilityManagerService;
 
+    private static AccessibilityManager hookedAccessibilityManager;
+    private static boolean accessibilityWasEnabled;
+
     /**
      * 从WindowManagerGlobal中获取ViewParent的实例为ViewRootImpl对象
      *
@@ -57,10 +60,23 @@ public class ReflectHookUtil {
      */
     public static void hookAccessibilityManager(Context context, boolean enable) {
         try {
-            Class<AccessibilityManager> accessibilityManagerClass = ReflectUtils.reflect(AccessibilityManager.class).get();
-            AccessibilityManager instance = (AccessibilityManager) accessibilityManagerClass.getMethod("getInstance", Context.class).invoke(null, context);
-            //先重置状态
-            ReflectUtils.reflect(instance).field("mIsEnabled", enable);
+            if (enable) {
+                if (context == null || hookedAccessibilityManager != null) {
+                    return;
+                }
+                AccessibilityManager instance = (AccessibilityManager) context.getSystemService(Context.ACCESSIBILITY_SERVICE);
+                if (instance == null) {
+                    return;
+                }
+                boolean wasEnabled = ReflectUtils.reflect(instance).field("mIsEnabled").get();
+                ReflectUtils.reflect(instance).field("mIsEnabled", true);
+                accessibilityWasEnabled = wasEnabled;
+                hookedAccessibilityManager = instance;
+            } else if (hookedAccessibilityManager != null) {
+                // 恢复录制前的状态，避免关闭用户已开启的无障碍功能。
+                ReflectUtils.reflect(hookedAccessibilityManager).field("mIsEnabled", accessibilityWasEnabled);
+                hookedAccessibilityManager = null;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

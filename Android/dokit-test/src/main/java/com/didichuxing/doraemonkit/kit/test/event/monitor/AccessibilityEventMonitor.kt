@@ -37,6 +37,9 @@ object AccessibilityEventMonitor {
         if (!DoKitTestManager.isHostMode()) {
             return
         }
+        if (view is DoKitFrameLayout && event.eventType == AccessibilityEvent.TYPE_VIEW_FOCUSED) {
+            return
+        }
         when (event.eventType) {
             //点击事件只响应给需要处理的控件
             AccessibilityEvent.TYPE_VIEW_CLICKED -> {

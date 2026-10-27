@@ -33,7 +33,7 @@ dependencyResolutionManagement {
                     }
                 }
             }
-            filter { includeGroup('com.didichuxing.doraemonkit') }
+            filter { includeGroup(providers.gradleProperty('migrationGroup').getOrElse('io.github.qqnp1100')) }
         }
         google()
         mavenCentral()

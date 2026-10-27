@@ -1,5 +1,9 @@
 # Android接入指南
 
+当前分支 Maven Central 发布配置为 `io.github.qqnp1100` / `3.7.12`，包含面向 AGP 9.4.1
+的插件 `io.github.qqnp1100.dokit`。发布步骤和本分支消费方式见 [Maven Central 发布说明](PUBLISHING.md)。
+下文为上游历史版本的接入说明。
+
 ## DoKit Android 最新版本
 **由于jcenter事件的影响，我们需要将DoKit For Android迁移到mavenCentral()，但是需要更改groupId.所以大家要注意一下，具体的更新信息如下：**
 

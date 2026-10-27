@@ -11,6 +11,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 import java.io.File
 import java.nio.file.Files
+import java.util.Properties
 import java.util.zip.ZipFile
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -29,6 +30,7 @@ class AndroidHostFunctionalTest {
             // taking locks on this outer test build while Gradle TestKit is running.
             val plugin = File(host, "dokit-plugin").apply { mkdirs() }
             for (name in listOf("settings.gradle", "build.gradle", "gradle.properties")) File(sourceRoot, name).copyTo(File(plugin, name))
+            File(sourceRoot, "gradle").copyRecursively(File(plugin, "gradle"))
             File(sourceRoot, "src/main").copyRecursively(File(plugin, "src/main"))
             File(host, "settings.gradle").writeText("""
                 pluginManagement { includeBuild('dokit-plugin'); repositories { google(); mavenCentral(); gradlePluginPortal() } }
@@ -213,7 +215,10 @@ class AndroidHostFunctionalTest {
                 .withArguments(listOf("publishAllPublicationsToMigrationRepository", "--gradle-user-home", gradleUserHome) + offlineArguments).build()
             assertEquals(TaskOutcome.SUCCESS, publication.task(":publishAllPublicationsToMigrationRepository")!!.outcome)
             val repository = File(plugin, "build/migration-repository")
-            val pom = File(repository, "com/didichuxing/doraemonkit/dokitx-plugin/3.7.14.10-kotlin-2.4.21-SNAPSHOT").listFiles()!!.single { it.extension == "pom" }.readText()
+            val publishingProperties = Properties().apply { File(plugin, "gradle.properties").inputStream().use { load(it) } }
+            val publishedGroup = publishingProperties.getProperty("dokitPublishingGroup")
+            val publishedVersion = publishingProperties.getProperty("dokitPublishingVersion")
+            val pom = File(repository, "${publishedGroup.replace('.', '/')}/dokitx-plugin/$publishedVersion").listFiles()!!.single { it.extension == "pom" }.readText()
             File(evidence, "plugin-publication.log").writeText(publication.output)
             File(evidence, "plugin.pom").writeText(pom)
             assertFalse("compileOnly AGP must not leak into the published POM", pom.contains("com.android.tools.build"))
@@ -222,7 +227,7 @@ class AndroidHostFunctionalTest {
             val settings = File(host, "settings.gradle")
             settings.writeText(settings.readText().replace("includeBuild('dokit-plugin');", "repositories { maven { url = uri('dokit-plugin/build/migration-repository') } };"))
             val build = File(host, "build.gradle")
-            build.writeText(build.readText().replace("id 'com.didi.dokit' apply false", "id 'com.didi.dokit' version '3.7.14.10-kotlin-2.4.21-SNAPSHOT' apply false"))
+            build.writeText(build.readText().replace("id 'com.didi.dokit' apply false", "id 'io.github.qqnp1100.dokit' version '$publishedVersion' apply false"))
             val consumed = run(":before:assembleDebug")
             assertTrue(consumed.task(":before:dokitTransformDebug")!!.outcome in setOf(TaskOutcome.SUCCESS, TaskOutcome.FROM_CACHE))
             assertNull("published consumer cannot compile a substituted plugin project", consumed.task(":dokit-plugin:compileKotlin"))

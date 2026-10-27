@@ -13,7 +13,7 @@ pluginManagement {
 }
 ```
 
-宿主应用中应用 `com.didi.dokit`。`com.didi.dokit.debug` 保留为兼容别名，两者指向同一个实现。插件支持在 Android 插件之前或之后应用；Android/DoKit 插件仍应在项目配置阶段应用。
+宿主通过 Maven Central 的插件 DSL 应用 `io.github.qqnp1100.dokit`。`com.didi.dokit` 和 `com.didi.dokit.debug` 保留为兼容别名，三个 ID 指向同一个实现；旧 ID 可通过实现 JAR 的 buildscript classpath 使用。插件支持在 Android 插件之前或之后应用；Android/DoKit 插件仍应在项目配置阶段应用。
 
 默认仅处理 `variant.debuggable == true` 的变体，包括自定义调试 buildType；同一次调用的 Release 不注册插桩任务。`DOKIT_PLUGIN_SWITCH=false` 或 `dokit.pluginEnable=false` 关闭该变体的插桩。
 
@@ -56,4 +56,11 @@ rtk proxy ./gradlew -p dokit-plugin test validatePlugins -Pdokit.androidSdk=/abs
 rtk proxy ./gradlew -p dokit-plugin publishAllPublicationsToMigrationRepository
 ```
 
-也可以调用本目录 `upload.sh`。仅发布至 `build/migration-repository`，不需要发布凭证，不访问 Bintray 或远程仓库。Java component 生成 JAR/sources/POM/module metadata，java-gradle-plugin 生成两个插件 marker。发布 group/version 的唯一来源是本目录 `gradle.properties` 的 `dokitPublishingGroup` / `dokitPublishingVersion`，主 Android 工程读取同一文件。候选坐标为 `com.didichuxing.doraemonkit:dokitx-plugin:3.7.14.10-kotlin-2.4.21-SNAPSHOT`，独立消费验收应关闭 included-build substitution。
+也可以调用本目录 `upload.sh`。仅发布至 `build/migration-repository`，不需要发布凭证。Java component 生成 JAR/sources/文档 JAR/POM/module metadata，java-gradle-plugin 生成三个插件 marker。发布 group/version 的唯一来源是本目录 `gradle.properties` 的 `dokitPublishingGroup` / `dokitPublishingVersion`，主 Android 工程读取同一文件。当前坐标为 `io.github.qqnp1100:dokitx-plugin:3.7.12`，独立消费验收应关闭 included-build substitution。
+
+## Maven Central 发布
+
+在 `Android/` 配置本机 `central-publishing.properties` 后执行
+`rtk proxy bash upload_maven.sh --prepare --max-workers=2`，将插件实现与
+`io.github.qqnp1100.dokit` marker 和全部 SDK 打包到一个签名 bundle。
+旧 ID 的 marker 不上传到 Central；完整流程、GPG 配置及消费示例见 [发布说明](../PUBLISHING.md)。
