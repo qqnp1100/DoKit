@@ -1,0 +1,68 @@
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+import org.gradle.plugins.signing.Sign
+
+apply plugin: 'signing'
+
+def signingKey = dokitPublicationSetting('DOKIT_SIGNING_KEY')
+def signingKeyFile = dokitPublicationSetting('DOKIT_SIGNING_KEY_FILE')
+if (!signingKey && signingKeyFile) {
+    def keyFile = new File(signingKeyFile)
+    if (!keyFile.isAbsolute()) {
+        keyFile = new File(dokitPublishingRoot, signingKeyFile)
+    }
+    if (!keyFile.isFile()) {
+        throw new GradleException('DOKIT_SIGNING_KEY_FILE must point to an existing ASCII-armored GPG private key.')
+    }
+    signingKey = keyFile.getText('UTF-8')
+}
+def signingPassword = dokitPublicationSetting('DOKIT_SIGNING_PASSWORD') ?: dokitPublicationSetting('signing.password')
+def signingKeyId = dokitPublicationSetting('DOKIT_SIGNING_KEY_ID') ?: dokitPublicationSetting('signing.keyId')
+def signingKeyRing = dokitPublicationSetting('signing.secretKeyRingFile')
+if (signingKeyRing) {
+    ext['signing.keyId'] = signingKeyId
+    ext['signing.password'] = signingPassword
+    ext['signing.secretKeyRingFile'] = signingKeyRing
+}
+signing {
+    required = true
+    if (signingKey) {
+        if (signingKeyId) {
+            useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+        } else {
+            useInMemoryPgpKeys(signingKey, signingPassword)
+        }
+    }
+    sign publishing.publications
+}
+// Re-sign when a key is supplied for a release, even if artifact bytes match a
+// previous local verification that used another signing key.
+tasks.withType(Sign).configureEach {
+    outputs.upToDateWhen { false }
+}
+
+// Gradle stages a Maven repository locally. The release script bundles all
+// libraries and the standalone plugin into ONE Central Portal deployment.
+def stagingDirectory = dokitPublicationSetting('DOKIT_CENTRAL_STAGING_DIRECTORY')
+    ?: new File(dokitPublishingRoot, 'build/central-staging-repository').absolutePath
+publishing {
+    repositories {
+        maven {
+            name = 'central'
+            url = uri(stagingDirectory)
+        }
+    }
+}
+
+tasks.withType(PublishToMavenRepository).configureEach {
+    doFirst {
+        if (repository.name == 'central') {
+            def namespace = project.group.toString()
+            if (!(publication.groupId == namespace || publication.groupId.startsWith(namespace + '.'))) {
+                throw new GradleException("Central marker namespace ${publication.groupId} is outside ${namespace}. Publish pluginMaven and centralPluginMarkerMaven only; legacy plugin IDs remain available through buildscript classpath.")
+            }
+            if (publication.version.endsWith('-SNAPSHOT')) {
+                throw new GradleException('This Central Portal release workflow requires a version without -SNAPSHOT.')
+            }
+        }
+    }
+}

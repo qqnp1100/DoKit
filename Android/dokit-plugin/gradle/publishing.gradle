@@ -1,0 +1,64 @@
+// Shared by the Android libraries and the standalone Gradle plugin build.
+def pluginDirectory = rootProject.name == 'dokit-plugin' ? rootProject.projectDir : rootProject.file('dokit-plugin')
+ext.dokitPublishingRoot = pluginDirectory.parentFile
+def publicationProperties = new Properties()
+def publicationPropertiesPath = providers.gradleProperty('DOKIT_PUBLISH_PROPERTIES_FILE')
+    .orElse(providers.environmentVariable('DOKIT_PUBLISH_PROPERTIES_FILE'))
+    .getOrElse(new File(dokitPublishingRoot, 'central-publishing.properties').absolutePath)
+def publicationPropertiesFile = new File(publicationPropertiesPath)
+if (!publicationPropertiesFile.isAbsolute()) {
+    publicationPropertiesFile = new File(dokitPublishingRoot, publicationPropertiesPath)
+}
+if (publicationPropertiesFile.isFile()) {
+    publicationPropertiesFile.withReader('UTF-8') { publicationProperties.load(it) }
+}
+def localProperties = new Properties()
+def localPropertiesFile = new File(dokitPublishingRoot, 'local.properties')
+if (localPropertiesFile.isFile()) {
+    localPropertiesFile.withReader('UTF-8') { localProperties.load(it) }
+}
+ext.dokitPublicationSetting = { String name ->
+    providers.gradleProperty(name)
+        .orElse(providers.environmentVariable(name))
+        .getOrElse(publicationProperties.getProperty(name, localProperties.getProperty(name, '')))
+        .trim()
+}
+
+// Kotlin and Android APIs are documented in the linked sources and guides.
+// Central permits a documentation JAR containing a README with those links.
+def documentationJar = tasks.register('dokitJavadocJar', Jar) {
+    archiveClassifier.set('javadoc')
+    from(new File(pluginDirectory, 'gradle/javadoc'))
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+publishing.publications.withType(MavenPublication).configureEach {
+    if (name in ['release', 'pluginMaven']) {
+        artifact(documentationJar)
+    }
+    pom {
+        name = project.name
+        description = 'DoKit Android SDK and Gradle instrumentation plugin.'
+        url = 'https://github.com/qqnp1100/DoKit'
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                distribution = 'repo'
+            }
+        }
+        developers {
+            developer {
+                id = 'xzin'
+                name = 'xzin'
+                email = '798494008@163.com'
+            }
+        }
+        scm {
+            connection = 'scm:git:https://github.com/qqnp1100/DoKit.git'
+            developerConnection = 'scm:git:ssh://git@github.com/qqnp1100/DoKit.git'
+            url = 'https://github.com/qqnp1100/DoKit'
+        }
+    }
+}

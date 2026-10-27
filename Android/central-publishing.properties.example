@@ -1,0 +1,11 @@
+# Copy to central-publishing.properties (gitignored) and restrict permissions to 600.
+# Central Portal USER TOKEN credentials, not your account login password.
+DOKIT_PUBLISH_USERNAME=
+DOKIT_PUBLISH_PASSWORD=
+
+# ASCII-armored private key, exported with: gpg --armor --export-secret-keys <fingerprint>
+# Use an absolute path. Publish the matching PUBLIC key to a supported key server.
+DOKIT_SIGNING_KEY_FILE=
+DOKIT_SIGNING_PASSWORD=
+# Optional: signing subkey ID. Leave blank when using the primary signing key.
+DOKIT_SIGNING_KEY_ID=
