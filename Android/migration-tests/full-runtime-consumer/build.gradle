@@ -54,7 +54,7 @@ kotlin {
 }
 
 def migrationGroup = providers.gradleProperty('migrationGroup').getOrElse('io.github.qqnp1100')
-def migrationVersion = providers.gradleProperty('migrationVersion').getOrElse('3.7.12')
+def migrationVersion = providers.gradleProperty('migrationVersion').getOrElse('3.7.13')
 dependencies {
     ['dokitx', 'dokitx-ft', 'dokitx-mc', 'dokitx-autotest', 'dokitx-gps-mock', 'dokitx-pthread-hook'].each { artifact ->
         implementation "${migrationGroup}:${artifact}:${migrationVersion}"

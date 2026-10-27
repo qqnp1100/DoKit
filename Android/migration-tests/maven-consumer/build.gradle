@@ -48,7 +48,7 @@ kotlin {
 }
 
 def migrationGroup = providers.gradleProperty('migrationGroup').getOrElse('io.github.qqnp1100')
-def migrationVersion = providers.gradleProperty('migrationVersion').getOrElse('3.7.12')
+def migrationVersion = providers.gradleProperty('migrationVersion').getOrElse('3.7.13')
 dependencies {
     implementation "${migrationGroup}:dokitx-no-op:${migrationVersion}"
     implementation "${migrationGroup}:dokitx-util:${migrationVersion}"
