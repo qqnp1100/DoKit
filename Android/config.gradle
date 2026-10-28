@@ -23,11 +23,11 @@ ext {
 
     // AGP 9.4.1 ViewBinding/DataBinding artifacts require compileSdk >= 34.
     // targetSdk/minSdk remain the existing runtime contract.
-    android = [compileSdkVersion             : 34,
+    android = [compileSdkVersion             : 36,
                applicationId                 : "com.didichuxing.doraemondemo",
                minSdkVersion_16              : 16,
                minSdkVersion_21              : 21,
-               targetSdkVersion              : 31,
+               targetSdkVersion              : 36,
                //app版本号
                versionCode                   : 1,
                versionName                   : "1.0.0",
