@@ -11,7 +11,7 @@ import zipfile
 
 
 GROUP = 'io.github.qqnp1100'
-VERSION = '3.7.13'
+VERSION = '3.7.14'
 ARTIFACTS = ('dokitx', 'dokitx-ft', 'dokitx-mc', 'dokitx-autotest',
              'dokitx-gps-mock', 'dokitx-pthread-hook')
 SERVICES = ('com.didichuxing.doraemonkit.kit.AbstractKit',

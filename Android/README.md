@@ -1,6 +1,6 @@
 # Android接入指南
 
-当前分支 Maven Central 发布配置为 `io.github.qqnp1100` / `3.7.13`，包含面向 AGP 9.4.1
+当前分支 Maven Central 发布配置为 `io.github.qqnp1100` / `3.7.14`，包含面向 AGP 9.4.1
 的插件 `io.github.qqnp1100.dokit`。发布步骤和本分支消费方式见 [Maven Central 发布说明](PUBLISHING.md)。
 下文为上游历史版本的接入说明。
 

@@ -4,7 +4,7 @@
 
 ```properties
 dokitPublishingGroup=io.github.qqnp1100
-dokitPublishingVersion=3.7.13
+dokitPublishingVersion=3.7.14
 ```
 
 一次部署包含 `settings.gradle` 中启用的 13 个 Android Library、`dokitx-plugin`
@@ -77,7 +77,7 @@ Library，保留 release component 生成的依赖范围和 Gradle Module Metada
 sources、文档 JAR、POM、PGP 签名和 MD5/SHA-1 校验和。
 文档 JAR 内含指向维护文档及 Java/Kotlin 源码的 README，不是生成式 API 文档。
 
-输出为 `build/central/dokit-3.7.13-bundle.zip`，使用 Maven 仓库目录结构。
+输出为 `build/central/dokit-3.7.14-bundle.zip`，使用 Maven 仓库目录结构。
 脚本验证 15 项 publication 的坐标、POM 必需字段、内部依赖、GMM、签名文件和校验和，
 排除仓库级 `maven-metadata.xml`，并拒绝旧 namespace 的插件 marker 混入。
 缺少私钥会在构建前失败，普通构建及本地 Maven 发布不要求发布凭证或签名。
@@ -98,7 +98,7 @@ rtk proxy bash upload_maven.sh --max-workers=2
 
 脚本使用 Central Publisher API 的 `Bearer base64(username:password)` 认证，
 一次上传整批制品，部署类型为 `USER_MANAGED`。上传成功后打印 deployment id，
-并保存到 `build/central/dokit-3.7.13-bundle.deployment-id`。
+并保存到 `build/central/dokit-3.7.14-bundle.deployment-id`。
 到 [Central Portal Deployments](https://central.sonatype.com/publishing/deployments)
 查看验证结果；状态为 `VALIDATED` 后点击 Publish 才会公开发布。
 上传超时或网络中断时先查看 Deployments，避免重复上传已被服务器接受的部署。
@@ -110,8 +110,8 @@ rtk proxy bash upload_maven.sh --max-workers=2
 
 ```groovy
 dependencies {
-    debugImplementation 'io.github.qqnp1100:dokitx:3.7.13'
-    releaseImplementation 'io.github.qqnp1100:dokitx-no-op:3.7.13'
+    debugImplementation 'io.github.qqnp1100:dokitx:3.7.14'
+    releaseImplementation 'io.github.qqnp1100:dokitx-no-op:3.7.14'
 }
 ```
 
@@ -137,12 +137,12 @@ pluginManagement {
 ```groovy
 plugins {
     id 'com.android.application'
-    id 'io.github.qqnp1100.dokit' version '3.7.13'
+    id 'io.github.qqnp1100.dokit' version '3.7.14'
 }
 ```
 
 使用现有 `buildscript` 方式时，依赖为
-`classpath 'io.github.qqnp1100:dokitx-plugin:3.7.13'`，仍可
+`classpath 'io.github.qqnp1100:dokitx-plugin:3.7.14'`，仍可
 `apply plugin: 'com.didi.dokit'` 或 `com.didi.dokit.debug`。
 这两个旧 ID 的 descriptor 保留在实现 JAR 内，旧 marker 只发布到本地验证仓库，
 不上传到本次 `io.github.qqnp1100` namespace。

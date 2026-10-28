@@ -10,7 +10,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--group', default='io.github.qqnp1100')
-    parser.add_argument('--version', default='3.7.13')
+    parser.add_argument('--version', default='3.7.14')
     parser.add_argument('--modules', nargs='+', default=['dokit', 'dokit-weex', 'dokit-okhttp-v3', 'dokit-okhttp-v4'])
     args = parser.parse_args()
     mapping = json.loads((args.root / 'dokit_module.json').read_text())
