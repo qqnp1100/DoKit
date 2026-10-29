@@ -1,3 +1,13 @@
+# Floating view lifecycle tests
+
+`rtk proxy ./gradlew :dokit:testDebugUnitTest --tests '*DoKitViewLifecycleTest'`
+runs the lifecycle regressions with Robolectric on Android API 28 and 34. The
+tests keep the hosting window alive and check listener counts across attachment,
+detachment, reattachment, destruction, and batch removal. They also verify that
+destruction cancels queued work, releases Activity/child-view references, cancels
+the coroutine scope, and releases the color-picker singleton without clearing a
+newer instance. Failed system-view creation and repeated destruction are covered.
+
 # Connection tests
 
 `rtk proxy ./gradlew :dokit:testDebugUnitTest` runs the portable JVM tests. Packet

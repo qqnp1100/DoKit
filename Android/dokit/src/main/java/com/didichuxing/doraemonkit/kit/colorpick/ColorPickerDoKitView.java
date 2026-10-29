@@ -92,7 +92,17 @@ public class ColorPickerDoKitView extends AbsDoKitView {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mImageCapture.destroy();
+        ColorPickManager manager = ColorPickManager.getInstance();
+        if (manager.getColorPickerDokitView() == this) {
+            manager.setColorPickerDokitView(null);
+        }
+        if (mImageCapture != null) {
+            mImageCapture.destroy();
+            mImageCapture = null;
+        }
+        mInfoDokitView = null;
+        mPickerView = null;
+        mRunnable = null;
     }
 
     /**

@@ -94,6 +94,8 @@ abstract class AbsDoKitView : DoKitView, TouchProxy.OnTouchEventListener, DoKitV
     private var mHandler: Handler? = Looper.myLooper()?.let { Handler(it) }
 
     private val mInnerReceiver = InnerReceiver()
+    private var mReceiverContext: Context? = null
+    private var mDestroyed = false
 
     /**
      * 当前dokitViewName 用来当做map的key 和dokitViewIntent的tag一致
@@ -177,6 +179,17 @@ abstract class AbsDoKitView : DoKitView, TouchProxy.OnTouchEventListener, DoKitV
         }
     }
 
+    private val mOnAttachStateChangeListener = object : View.OnAttachStateChangeListener {
+        override fun onViewAttachedToWindow(view: View) {
+            addViewTreeObserverListener()
+        }
+
+        override fun onViewDetachedFromWindow(view: View) {
+            // Remove while the view still has the hosting window's observer.
+            removeViewTreeObserverListener()
+        }
+    }
+
     /**
      * 执行floatPage create
      *
@@ -209,8 +222,8 @@ abstract class AbsDoKitView : DoKitView, TouchProxy.OnTouchEventListener, DoKitV
                     }
                 }
             }
-            //添加根布局的layout回调
-            addViewTreeObserverListener()
+            // The floating observer obtained before attachment is merged and killed by Android.
+            mRootView?.addOnAttachStateChangeListener(mOnAttachStateChangeListener)
 
             //调用onCreateView抽象方法
             mChildView = onCreateView(context, mRootView)
@@ -262,6 +275,7 @@ abstract class AbsDoKitView : DoKitView, TouchProxy.OnTouchEventListener, DoKitV
                 //动态注册关闭系统弹窗的广播
                 val intentFilter = IntentFilter(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
                 context.registerReceiver(mInnerReceiver, intentFilter)
+                mReceiverContext = context
             }
             initDokitViewLayoutParams(mDoKitViewLayoutParams)
             if (isNormalMode) {
@@ -280,22 +294,37 @@ abstract class AbsDoKitView : DoKitView, TouchProxy.OnTouchEventListener, DoKitV
     }
 
     fun performDestroy() {
-        if (!isNormalMode) {
-            context?.unregisterReceiver(mInnerReceiver)
+        if (mDestroyed) {
+            return
         }
+        mDestroyed = true
+        mReceiverContext?.unregisterReceiver(mInnerReceiver)
+        mReceiverContext = null
         //移除布局监听
         removeViewTreeObserverListener()
+        mRootView?.removeOnAttachStateChangeListener(mOnAttachStateChangeListener)
+        mRootView?.setOnTouchListener(null)
+        mHandler?.removeCallbacksAndMessages(null)
         mHandler = null
         mRootView = null
+        mChildView = null
         mAttachActivity = null
-        onDestroy()
+        try {
+            onDestroy()
+        } finally {
+            doKitViewScope.cancel()
+        }
     }
 
     private fun addViewTreeObserverListener() {
-        if (mViewTreeObserver == null && mRootView != null) {
-            mViewTreeObserver = mRootView!!.viewTreeObserver
-            mViewTreeObserver?.addOnGlobalLayoutListener(mOnGlobalLayoutListener)
-
+        val observer = mRootView?.viewTreeObserver ?: return
+        if (mViewTreeObserver === observer) {
+            return
+        }
+        removeViewTreeObserverListener()
+        if (observer.isAlive) {
+            observer.addOnGlobalLayoutListener(mOnGlobalLayoutListener)
+            mViewTreeObserver = observer
         }
     }
 
@@ -305,6 +334,7 @@ abstract class AbsDoKitView : DoKitView, TouchProxy.OnTouchEventListener, DoKitV
                 it.removeOnGlobalLayoutListener(mOnGlobalLayoutListener)
             }
         }
+        mViewTreeObserver = null
     }
 
     /**

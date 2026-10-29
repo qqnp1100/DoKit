@@ -448,16 +448,18 @@ internal class NormalDoKitViewManager : AbsDoKitViewManager() {
      * 移除所有activity的所有dokitView
      */
     override fun detachAll() {
-
-        //移除每个activity中所有的dokitView
-        for (activityKey: Activity in activityDoKitViewMap.keys) {
-            val doKitViewMap = activityDoKitViewMap[activityKey]
-            //移除指定UI
-            getDoKitRootContentView(activityKey).removeAllViews()
-            //移除map中的数据
-            doKitViewMap?.clear()
-        }
+        val activityViews = activityDoKitViewMap.toMap()
+        activityDoKitViewMap.clear()
         globalSingleDoKitViewInfoMap.clear()
+        for ((activity, doKitViewMap) in activityViews) {
+            activity.window.peekDecorView()
+                ?.findViewById<ViewGroup>(R.id.dokit_contentview_id)
+                ?.removeAllViews()
+            for (doKitView in doKitViewMap.values.toList()) {
+                doKitView.performDestroy()
+            }
+            doKitViewMap.clear()
+        }
     }
 
     /**
@@ -493,11 +495,11 @@ internal class NormalDoKitViewManager : AbsDoKitViewManager() {
         if (doKitRootView != null) {
             getDecorView(activity).removeView(doKitRootView)
         }
-        val doKitViewMap: Map<String, AbsDoKitView> = getDoKitViews(activity)
+        val doKitViewMap = activityDoKitViewMap.remove(activity) ?: return
         for (doKitView in doKitViewMap.values) {
             doKitView.performDestroy()
         }
-        activityDoKitViewMap.remove(activity)
+        doKitViewMap.clear()
     }
 
     /**

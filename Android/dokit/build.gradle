@@ -49,6 +49,10 @@ android {
         abortOnError false
     }
 
+    testOptions {
+        unitTests.includeAndroidResources = true
+    }
+
     // Public adapter classes reference the DataBinding APIs.
     buildFeatures {
         buildConfig = true
@@ -70,6 +74,7 @@ dependencies {
 //    implementation fileTree(include: ['*.jar'], dir: 'libs')
     //noinspection GradleCompatible
     testImplementation 'junit:junit:4.12'
+    testImplementation 'org.robolectric:robolectric:4.15.1'
     testImplementation "com.squareup.okhttp3:mockwebserver:${rootProject.ext.android['okhttp_v4']}"
     androidTestImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.2.0'
