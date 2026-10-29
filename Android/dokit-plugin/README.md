@@ -56,7 +56,7 @@ rtk proxy ./gradlew -p dokit-plugin test validatePlugins -Pdokit.androidSdk=/abs
 rtk proxy ./gradlew -p dokit-plugin publishAllPublicationsToMigrationRepository
 ```
 
-也可以调用本目录 `upload.sh`。仅发布至 `build/migration-repository`，不需要发布凭证。Java component 生成 JAR/sources/文档 JAR/POM/module metadata，java-gradle-plugin 生成三个插件 marker。发布 group/version 的唯一来源是本目录 `gradle.properties` 的 `dokitPublishingGroup` / `dokitPublishingVersion`，主 Android 工程读取同一文件。当前坐标为 `io.github.qqnp1100:dokitx-plugin:3.7.14`，独立消费验收应关闭 included-build substitution。
+也可以调用本目录 `upload.sh`。仅发布至 `build/migration-repository`，不需要发布凭证。Java component 生成 JAR/sources/文档 JAR/POM/module metadata，java-gradle-plugin 生成三个插件 marker。发布 group/version 的唯一来源是本目录 `gradle.properties` 的 `dokitPublishingGroup` / `dokitPublishingVersion`，主 Android 工程读取同一文件。当前坐标为 `io.github.qqnp1100:dokitx-plugin:3.7.15`，独立消费验收应关闭 included-build substitution。
 
 ## Maven Central 发布
 
